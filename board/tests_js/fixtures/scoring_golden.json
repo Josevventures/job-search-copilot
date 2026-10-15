@@ -1,0 +1,983 @@
+{
+ "now": "2026-10-13T12:00:00-04:00",
+ "configs": {
+  "balanced": {
+   "active_weights": {
+    "role_fit": 0.3,
+    "domain": 0.2,
+    "odds": 0.15,
+    "comp": 0.15,
+    "location": 0.1,
+    "freshness": 0.1
+   },
+   "compensation_settings": {
+    "annual_base_floor": 100000,
+    "hard_gate_clamp_ceiling": 40
+   },
+   "bands": {
+    "apply_now_min": 75,
+    "worth_a_look_min": 55
+   },
+   "market_bands": {
+    "entry": [
+     70000,
+     95000
+    ],
+    "mid": [
+     90000,
+     125000
+    ],
+    "senior": [
+     120000,
+     160000
+    ],
+    "manager": [
+     130000,
+     175000
+    ],
+    "director_plus": [
+     165000,
+     230000
+    ]
+   },
+   "market_bands_note": "sample band",
+   "home_metros": [
+    "boston"
+   ]
+  },
+  "floor95": {
+   "active_weights": {
+    "role_fit": 0.3,
+    "domain": 0.2,
+    "odds": 0.15,
+    "comp": 0.15,
+    "location": 0.1,
+    "freshness": 0.1
+   },
+   "compensation_settings": {
+    "annual_base_floor": 95000,
+    "hard_gate_clamp_ceiling": 40
+   },
+   "bands": {
+    "apply_now_min": 75,
+    "worth_a_look_min": 55
+   },
+   "market_bands": {
+    "entry": [
+     70000,
+     95000
+    ],
+    "mid": [
+     90000,
+     125000
+    ],
+    "senior": [
+     120000,
+     160000
+    ],
+    "manager": [
+     130000,
+     175000
+    ],
+    "director_plus": [
+     165000,
+     230000
+    ]
+   },
+   "market_bands_note": "sample band",
+   "home_metros": [
+    "boston"
+   ]
+  }
+ },
+ "normalize_cases": [
+  {
+   "raw": {
+    "role_fit": 30,
+    "domain": 20,
+    "odds": 15,
+    "comp": 15,
+    "location": 10,
+    "freshness": 10
+   },
+   "expected": {
+    "role_fit": 0.3,
+    "domain": 0.2,
+    "odds": 0.15,
+    "comp": 0.15,
+    "location": 0.1,
+    "freshness": 0.1
+   }
+  },
+  {
+   "raw": {
+    "role_fit": 1,
+    "domain": 1,
+    "odds": 1,
+    "comp": 1,
+    "location": 1,
+    "freshness": 1
+   },
+   "expected": {
+    "role_fit": 0.166667,
+    "domain": 0.166667,
+    "odds": 0.166667,
+    "comp": 0.166667,
+    "location": 0.166667,
+    "freshness": 0.166667
+   }
+  },
+  {
+   "raw": {
+    "role_fit": 50,
+    "domain": 0,
+    "odds": 50,
+    "comp": 0,
+    "location": 0,
+    "freshness": 0
+   },
+   "expected": {
+    "role_fit": 0.5,
+    "domain": 0,
+    "odds": 0.5,
+    "comp": 0,
+    "location": 0,
+    "freshness": 0
+   }
+  }
+ ],
+ "synthetic_board": {
+  "config": "balanced",
+  "note": "Made-up leads that exercise every formula together. expected_raw, expected_order and expected_band are the formulas' own output (a regression check), not anyone's ranking. Recomputed at extraction for the sample config; the formulas did not change.",
+  "expected_order": [
+   "5e0000000002",
+   "5e0000000001",
+   "5e0000000003",
+   "5e0000000005",
+   "5e0000000004",
+   "5e0000000006",
+   "5e0000000007"
+  ],
+  "expected_raw": {
+   "5e0000000001": 74.8,
+   "5e0000000002": 79.2,
+   "5e0000000003": 71.5,
+   "5e0000000004": 67.7,
+   "5e0000000005": 68.1,
+   "5e0000000006": 56.4,
+   "5e0000000007": 54.2
+  },
+  "expected_band": {
+   "5e0000000001": "apply_now",
+   "5e0000000002": "apply_now",
+   "5e0000000003": "worth_a_look",
+   "5e0000000004": "worth_a_look",
+   "5e0000000005": "worth_a_look",
+   "5e0000000006": "worth_a_look",
+   "5e0000000007": "low"
+  },
+  "leads": [
+   {
+    "lead_id": "5e0000000001",
+    "schema_version": 2,
+    "first_seen": "2026-10-12T10:00:00+00:00",
+    "triage": {
+     "company": "Synthco",
+     "role_title": "Role A",
+     "route": "board",
+     "posting_status": "open",
+     "scores": {
+      "role_fit": {
+       "score": 55,
+       "evidence": "Synthetic A: one real gap"
+      },
+      "domain": {
+       "score": 92,
+       "evidence": "Synthetic A: core of the direction"
+      }
+     },
+     "level": "mid",
+     "modality": "unknown",
+     "relocation_assistance": null,
+     "locations": [
+      {
+       "label": "Tulsa, OK",
+       "metro": "other_us"
+      },
+      {
+       "label": "Pasadena, CA",
+       "metro": "los_angeles"
+      }
+     ],
+     "pay_type": "salary",
+     "pay_source": "posting",
+     "bonus": null,
+     "equity": null,
+     "pay_bands": [
+      {
+       "location_metro": "other_us",
+       "min": 113500,
+       "max": 152200,
+       "period": "year",
+       "basis": "base"
+      }
+     ],
+     "posted_date": "2026-10-11",
+     "reposted": false,
+     "applicant_count": 29,
+     "inbound": null,
+     "network": {
+      "contacts": [
+       {
+        "name": "Pat Example",
+        "status": "current",
+        "warmth": "warm",
+        "recommendation": "referral ask"
+       }
+      ]
+     },
+     "airtable_match": {
+      "relation": "none"
+     }
+    }
+   },
+   {
+    "lead_id": "5e0000000002",
+    "schema_version": 2,
+    "first_seen": "2026-10-12T10:00:00+00:00",
+    "triage": {
+     "company": "Synthco",
+     "role_title": "Role B",
+     "route": "board",
+     "posting_status": "open",
+     "scores": {
+      "role_fit": {
+       "score": 60,
+       "evidence": "Synthetic B: meets most requirements"
+      },
+      "domain": {
+       "score": 88,
+       "evidence": "Synthetic B: strongly in direction"
+      }
+     },
+     "level": "manager",
+     "modality": "unknown",
+     "relocation_assistance": null,
+     "locations": [
+      {
+       "label": "Boston, MA",
+       "metro": "boston"
+      },
+      {
+       "label": "Seattle, WA",
+       "metro": "seattle"
+      }
+     ],
+     "pay_type": "salary",
+     "pay_source": "posting",
+     "bonus": null,
+     "equity": null,
+     "pay_bands": [
+      {
+       "location_metro": "boston",
+       "min": 123000,
+       "max": 165000,
+       "period": "year",
+       "basis": "base"
+      }
+     ],
+     "posted_date": "2026-10-08",
+     "reposted": false,
+     "applicant_count": 150,
+     "inbound": null,
+     "network": {
+      "contacts": [
+       {
+        "name": "Pat Example",
+        "status": "current",
+        "warmth": "warm",
+        "recommendation": "referral ask"
+       }
+      ]
+     },
+     "airtable_match": {
+      "relation": "none"
+     }
+    }
+   },
+   {
+    "lead_id": "5e0000000003",
+    "schema_version": 2,
+    "first_seen": "2026-10-12T10:00:00+00:00",
+    "triage": {
+     "company": "Synthco",
+     "role_title": "Role C",
+     "route": "board",
+     "posting_status": "open",
+     "scores": {
+      "role_fit": {
+       "score": 55,
+       "evidence": "Synthetic C: one real gap"
+      },
+      "domain": {
+       "score": 65,
+       "evidence": "Synthetic C: adjacent to the direction"
+      }
+     },
+     "level": "mid",
+     "modality": "unknown",
+     "relocation_assistance": null,
+     "locations": [
+      {
+       "label": "Boston, MA",
+       "metro": "boston"
+      },
+      {
+       "label": "Pasadena, CA",
+       "metro": "los_angeles"
+      }
+     ],
+     "pay_type": "salary",
+     "pay_source": "posting",
+     "bonus": null,
+     "equity": null,
+     "pay_bands": [
+      {
+       "location_metro": "boston",
+       "min": 113700,
+       "max": 152400,
+       "period": "year",
+       "basis": "base"
+      },
+      {
+       "location_metro": "los_angeles",
+       "min": 108500,
+       "max": 145500,
+       "period": "year",
+       "basis": "base"
+      }
+     ],
+     "posted_date": "2026-10-11",
+     "reposted": false,
+     "applicant_count": null,
+     "inbound": null,
+     "network": {
+      "contacts": [
+       {
+        "name": "Pat Example",
+        "status": "current",
+        "warmth": "warm",
+        "recommendation": "referral ask"
+       }
+      ]
+     },
+     "airtable_match": {
+      "relation": "none"
+     }
+    }
+   },
+   {
+    "lead_id": "5e0000000004",
+    "schema_version": 2,
+    "first_seen": "2026-10-12T10:00:00+00:00",
+    "triage": {
+     "company": "Synthco",
+     "role_title": "Role D",
+     "route": "board",
+     "posting_status": "open",
+     "scores": {
+      "role_fit": {
+       "score": 75,
+       "evidence": "Synthetic D: good match"
+      },
+      "domain": {
+       "score": 40,
+       "evidence": "Synthetic D: partly in direction"
+      }
+     },
+     "level": "senior",
+     "modality": "unknown",
+     "relocation_assistance": null,
+     "locations": [
+      {
+       "label": "Santa Monica, CA",
+       "metro": "los_angeles"
+      }
+     ],
+     "pay_type": "salary",
+     "pay_source": "posting",
+     "bonus": null,
+     "equity": null,
+     "pay_bands": [
+      {
+       "location_metro": "los_angeles",
+       "min": 114400,
+       "max": 157100,
+       "period": "year",
+       "basis": "base"
+      }
+     ],
+     "posted_date": "2026-10-05",
+     "reposted": true,
+     "applicant_count": null,
+     "inbound": null,
+     "network": {
+      "contacts": [
+       {
+        "name": "Pat Example",
+        "status": "current",
+        "warmth": "warm",
+        "recommendation": "referral ask"
+       }
+      ]
+     },
+     "airtable_match": {
+      "relation": "none"
+     }
+    }
+   },
+   {
+    "lead_id": "5e0000000005",
+    "schema_version": 2,
+    "first_seen": "2026-10-12T10:00:00+00:00",
+    "triage": {
+     "company": "Synthco",
+     "role_title": "Role E",
+     "route": "board",
+     "posting_status": "open",
+     "scores": {
+      "role_fit": {
+       "score": 85,
+       "evidence": "Synthetic E: meets every requirement"
+      },
+      "domain": {
+       "score": 25,
+       "evidence": "Synthetic E: outside the direction"
+      }
+     },
+     "level": "senior",
+     "modality": "unknown",
+     "relocation_assistance": null,
+     "locations": [
+      {
+       "label": "Boston, MA",
+       "metro": "boston"
+      }
+     ],
+     "pay_type": "salary",
+     "pay_source": "posting",
+     "bonus": null,
+     "equity": null,
+     "pay_bands": [
+      {
+       "location_metro": "boston",
+       "min": 119800,
+       "max": 164600,
+       "period": "year",
+       "basis": "base"
+      }
+     ],
+     "posted_date": "2026-09-12",
+     "reposted": false,
+     "applicant_count": 200,
+     "inbound": null,
+     "network": {
+      "contacts": [
+       {
+        "name": "Pat Example",
+        "status": "current",
+        "warmth": "warm",
+        "recommendation": "referral ask"
+       }
+      ]
+     },
+     "airtable_match": {
+      "relation": "none"
+     }
+    }
+   },
+   {
+    "lead_id": "5e0000000006",
+    "schema_version": 2,
+    "first_seen": "2026-10-12T10:00:00+00:00",
+    "triage": {
+     "company": "Synthco",
+     "role_title": "Role F",
+     "route": "board",
+     "posting_status": "open",
+     "scores": {
+      "role_fit": {
+       "score": 30,
+       "evidence": "Synthetic F: several gaps"
+      },
+      "domain": {
+       "score": 30,
+       "evidence": "Synthetic F: outside the direction"
+      }
+     },
+     "level": "mid",
+     "modality": "unknown",
+     "relocation_assistance": null,
+     "locations": [
+      {
+       "label": "Boston, MA",
+       "metro": "boston"
+      },
+      {
+       "label": "Santa Monica, CA",
+       "metro": "los_angeles"
+      }
+     ],
+     "pay_type": "salary",
+     "pay_source": "posting",
+     "bonus": null,
+     "equity": null,
+     "pay_bands": [
+      {
+       "location_metro": "boston",
+       "min": 102100,
+       "max": 136900,
+       "period": "year",
+       "basis": "base"
+      }
+     ],
+     "posted_date": "2026-10-07",
+     "reposted": false,
+     "applicant_count": 30,
+     "inbound": null,
+     "network": {
+      "contacts": [
+       {
+        "name": "Pat Example",
+        "status": "current",
+        "warmth": "warm",
+        "recommendation": "referral ask"
+       }
+      ]
+     },
+     "airtable_match": {
+      "relation": "none"
+     }
+    }
+   },
+   {
+    "lead_id": "5e0000000007",
+    "schema_version": 2,
+    "first_seen": "2026-10-12T10:00:00+00:00",
+    "triage": {
+     "company": "Synthco",
+     "role_title": "Role G",
+     "route": "board",
+     "posting_status": "open",
+     "scores": {
+      "role_fit": {
+       "score": 15,
+       "evidence": "Synthetic G: literal screen likely fails"
+      },
+      "domain": {
+       "score": 80,
+       "evidence": "Synthetic G: in direction"
+      }
+     },
+     "level": "entry",
+     "modality": "unknown",
+     "relocation_assistance": null,
+     "locations": [
+      {
+       "label": "Pasadena, CA",
+       "metro": "los_angeles"
+      },
+      {
+       "label": "Boston, MA",
+       "metro": "boston"
+      }
+     ],
+     "pay_type": "salary",
+     "pay_source": "posting",
+     "bonus": null,
+     "equity": null,
+     "pay_bands": [
+      {
+       "location_metro": "los_angeles",
+       "min": 97500,
+       "max": 130700,
+       "period": "year",
+       "basis": "base"
+      }
+     ],
+     "posted_date": "2026-09-15",
+     "reposted": false,
+     "applicant_count": 200,
+     "inbound": null,
+     "network": {
+      "contacts": [
+       {
+        "name": "Pat Example",
+        "status": "current",
+        "warmth": "warm",
+        "recommendation": "referral ask"
+       }
+      ]
+     },
+     "airtable_match": {
+      "relation": "none"
+     }
+    }
+   }
+  ]
+ },
+ "edge_cases": [
+  {
+   "name": "band_top_below_floor_gated",
+   "config": "balanced",
+   "expect": {
+    "gated": true,
+    "composite_max": 40
+   },
+   "lead": {
+    "lead_id": "e5e000000001",
+    "schema_version": 2,
+    "first_seen": "2026-10-10T10:00:00+00:00",
+    "triage": {
+     "company": "Synthco Edge",
+     "role_title": "Role H",
+     "route": "board",
+     "posting_status": "open",
+     "scores": {
+      "role_fit": {
+       "score": 85,
+       "evidence": "e"
+      },
+      "domain": {
+       "score": 85,
+       "evidence": "e"
+      }
+     },
+     "level": "entry",
+     "modality": "unknown",
+     "locations": [
+      {
+       "label": "Boston, MA",
+       "metro": "boston"
+      }
+     ],
+     "pay_type": "salary",
+     "pay_source": "posting",
+     "pay_bands": [
+      {
+       "location_metro": "boston",
+       "min": 81900,
+       "max": 99900,
+       "period": "year",
+       "basis": "base"
+      }
+     ],
+     "posted_date": "2026-10-06",
+     "applicant_count": 119,
+     "network": {
+      "contacts": []
+     },
+     "airtable_match": {
+      "relation": "none"
+     }
+    }
+   }
+  },
+  {
+   "name": "band_top_below_floor_not_gated_at_95k",
+   "config": "floor95",
+   "expect": {
+    "gated": false
+   },
+   "lead": {
+    "lead_id": "e5e000000001",
+    "schema_version": 2,
+    "first_seen": "2026-10-10T10:00:00+00:00",
+    "triage": {
+     "company": "Synthco Edge",
+     "role_title": "Role H",
+     "route": "board",
+     "posting_status": "open",
+     "scores": {
+      "role_fit": {
+       "score": 85,
+       "evidence": "e"
+      },
+      "domain": {
+       "score": 85,
+       "evidence": "e"
+      }
+     },
+     "level": "entry",
+     "modality": "unknown",
+     "locations": [
+      {
+       "label": "Boston, MA",
+       "metro": "boston"
+      }
+     ],
+     "pay_type": "salary",
+     "pay_source": "posting",
+     "pay_bands": [
+      {
+       "location_metro": "boston",
+       "min": 81900,
+       "max": 99900,
+       "period": "year",
+       "basis": "base"
+      }
+     ],
+     "posted_date": "2026-10-06",
+     "applicant_count": 119,
+     "network": {
+      "contacts": []
+     },
+     "airtable_match": {
+      "relation": "none"
+     }
+    }
+   }
+  },
+  {
+   "name": "equity_only_gated",
+   "config": "balanced",
+   "expect": {
+    "gated": true,
+    "composite_max": 40
+   },
+   "lead": {
+    "lead_id": "e5e000000002",
+    "schema_version": 2,
+    "first_seen": "2026-10-10T10:00:00+00:00",
+    "triage": {
+     "company": "Synthco Edge",
+     "role_title": "Role I",
+     "route": "board",
+     "posting_status": "open",
+     "scores": {
+      "role_fit": {
+       "score": 90,
+       "evidence": "e"
+      },
+      "domain": {
+       "score": 95,
+       "evidence": "e"
+      }
+     },
+     "level": "senior",
+     "modality": "remote",
+     "locations": [
+      {
+       "label": "Remote (US)",
+       "metro": "remote_us"
+      }
+     ],
+     "pay_type": "equity_only",
+     "pay_source": "posting",
+     "pay_bands": [],
+     "posted_date": "2026-10-12",
+     "network": {
+      "contacts": []
+     },
+     "airtable_match": {
+      "relation": "none"
+     }
+    }
+   }
+  },
+  {
+   "name": "unverified_senior_estimated",
+   "config": "balanced",
+   "expect": {
+    "gated": false,
+    "flags": [
+     "comp_unspecified"
+    ],
+    "pay_kind": "estimated"
+   },
+   "lead": {
+    "lead_id": "e5e000000003",
+    "schema_version": 2,
+    "first_seen": "2026-10-10T10:00:00+00:00",
+    "triage": {
+     "company": "Synthco Edge",
+     "role_title": "Role J",
+     "route": "board",
+     "posting_status": "open",
+     "scores": {
+      "role_fit": {
+       "score": 70,
+       "evidence": "e"
+      },
+      "domain": {
+       "score": 90,
+       "evidence": "e"
+      }
+     },
+     "level": "senior",
+     "modality": "hybrid",
+     "locations": [
+      {
+       "label": "Boston, MA",
+       "metro": "boston"
+      }
+     ],
+     "pay_type": "unknown",
+     "pay_source": "none",
+     "pay_bands": [],
+     "posted_date": "2026-10-09",
+     "network": {
+      "contacts": []
+     },
+     "airtable_match": {
+      "relation": "none"
+     }
+    }
+   }
+  },
+  {
+   "name": "v1_needs_retriage",
+   "config": "balanced",
+   "expect": {
+    "state": "needs_retriage"
+   },
+   "lead": {
+    "lead_id": "e5e000000004",
+    "schema_version": 1,
+    "first_seen": "2026-09-30T10:00:00+00:00",
+    "triage": {
+     "company": "Synthco Edge",
+     "role_title": "Role K",
+     "fit_score": "Low",
+     "bucket": "low_fit"
+    }
+   }
+  },
+  {
+   "name": "still_open_current_triage",
+   "config": "balanced",
+   "expect": {
+    "gated": false,
+    "freshness": 100
+   },
+   "lead": {
+    "lead_id": "e5e000000005",
+    "schema_version": 2,
+    "first_seen": "2026-10-10T10:00:00+00:00",
+    "decision": {
+     "still_open": {
+      "at": "2026-10-13T09:00:00+00:00",
+      "by": "user",
+      "triaged_at_seen": "2026-10-12T08:00:00+00:00"
+     }
+    },
+    "triage": {
+     "company": "Synthco Edge",
+     "role_title": "Role L",
+     "route": "closed",
+     "posting_status": "closed",
+     "triaged_at": "2026-10-12T08:00:00+00:00",
+     "scores": {
+      "role_fit": {
+       "score": 60,
+       "evidence": "e"
+      },
+      "domain": {
+       "score": 60,
+       "evidence": "e"
+      }
+     },
+     "level": "mid",
+     "modality": "hybrid",
+     "locations": [
+      {
+       "label": "Boston, MA",
+       "metro": "boston"
+      }
+     ],
+     "pay_type": "salary",
+     "pay_source": "posting",
+     "pay_bands": [
+      {
+       "location_metro": "boston",
+       "min": 120000,
+       "max": 150000,
+       "period": "year",
+       "basis": "base"
+      }
+     ],
+     "posted_date": "2026-10-12",
+     "network": {
+      "contacts": []
+     },
+     "airtable_match": {
+      "relation": "none"
+     }
+    }
+   }
+  },
+  {
+   "name": "still_open_voided_by_newer_triage",
+   "config": "balanced",
+   "expect": {
+    "gated": false,
+    "freshness": 0
+   },
+   "lead": {
+    "lead_id": "e5e000000006",
+    "schema_version": 2,
+    "first_seen": "2026-10-10T10:00:00+00:00",
+    "decision": {
+     "still_open": {
+      "at": "2026-10-13T09:00:00+00:00",
+      "by": "user",
+      "triaged_at_seen": "2026-10-12T08:00:00+00:00"
+     }
+    },
+    "triage": {
+     "company": "Synthco Edge",
+     "role_title": "Role M",
+     "route": "closed",
+     "posting_status": "closed",
+     "triaged_at": "2026-10-13T08:00:00+00:00",
+     "scores": {
+      "role_fit": {
+       "score": 60,
+       "evidence": "e"
+      },
+      "domain": {
+       "score": 60,
+       "evidence": "e"
+      }
+     },
+     "level": "mid",
+     "modality": "hybrid",
+     "locations": [
+      {
+       "label": "Boston, MA",
+       "metro": "boston"
+      }
+     ],
+     "pay_type": "salary",
+     "pay_source": "posting",
+     "pay_bands": [
+      {
+       "location_metro": "boston",
+       "min": 120000,
+       "max": 150000,
+       "period": "year",
+       "basis": "base"
+      }
+     ],
+     "posted_date": "2026-10-12",
+     "network": {
+      "contacts": []
+     },
+     "airtable_match": {
+      "relation": "none"
+     }
+    }
+   }
+  }
+ ]
+}

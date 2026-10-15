@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Jobs board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  /* Design tokens shared with the private dashboard this page was built inside. */
+  :root {
+    --bg: #000000; --bg-panel: #04090b; --bg-panel-alt: #071216;
+    --accent: #00d9ff; --accent-soft: rgba(0, 217, 255, 0.12); --accent-dim: rgba(0, 217, 255, 0.35);
+    --border: rgba(0, 217, 255, 0.28); --border-soft: rgba(0, 217, 255, 0.14);
+    --text: #d7f6fb; --text-secondary: #6f95a0; --text-muted: #33474d;
+    --green: #48e29a; --green-dim: rgba(72,226,154,0.15);
+    --amber: #f5c451; --amber-dim: rgba(245,196,81,0.15);
+    --red: #f2665c; --red-dim: rgba(242,102,92,0.15);
+    --font-display: 'Orbitron', 'Segoe UI', sans-serif;
+    --font-mono: 'Share Tech Mono', 'Consolas', monospace;
+    --radius: 3px; --tap: 44px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 15px; line-height: 1.4;
+    padding-bottom: calc(180px + env(safe-area-inset-bottom)); overflow-x: hidden;
+  }
+  a { color: var(--accent); }
+  button { font: inherit; cursor: pointer; }
+
+  .top { position: sticky; top: 0; z-index: 5; background: rgba(0,10,12,0.96); border-bottom: 1px solid var(--border-soft); padding: 4px 16px 10px; }
+  .nav { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
+  .nav a { min-height: var(--tap); display: inline-flex; align-items: center; color: var(--text-secondary); text-decoration: none; }
+  .nav a[aria-current="page"] { color: var(--accent); }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 8px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: 0 0 auto; min-height: var(--tap); padding: 0 14px; border: 1px solid var(--border-soft); border-radius: 22px; background: transparent; color: var(--text); font-size: 13px; white-space: nowrap; }
+  .chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+  .search { width: 100%; min-height: var(--tap); padding: 0 12px; background: var(--bg-panel-alt); border: 1px solid var(--border-soft); border-radius: var(--radius); color: var(--text); font: inherit; font-size: 16px; }
+
+  .error-banner { margin: 12px 16px 0; padding: 10px 12px; border: 1px solid var(--red); background: var(--red-dim); color: var(--red); border-radius: var(--radius); }
+  main { padding: 4px 16px 16px; }
+  .section h2 { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.16em; color: var(--accent); margin: 18px 0 8px; text-transform: uppercase; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  @media (min-width: 768px) {
+    .grid { grid-template-columns: 1fr 1fr; }
+    main, .top-inner { max-width: 1200px; margin: 0 auto; }
+  }
+  .empty { color: var(--text-secondary); padding: 6px 0; }
+
+  .card { background: var(--bg-panel); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .card.pending { border-color: var(--amber); }
+  .title { font-size: 16px; overflow-wrap: anywhere; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .badge { font-size: 11px; padding: 2px 8px; border: 1px solid var(--border-soft); border-radius: 10px; color: var(--text-secondary); }
+  .badge.bucket { color: var(--accent); border-color: var(--accent-dim); }
+  .badge.warm { color: var(--green); border-color: var(--green); }
+  .meta { color: var(--text-secondary); font-size: 13px; }
+  .network { color: var(--green); font-size: 13px; overflow-wrap: anywhere; }
+  .why { font-size: 13px; cursor: pointer; overflow-wrap: anywhere; }
+  .why .more { display: none; color: var(--text-secondary); margin-top: 4px; }
+  .why[aria-expanded="true"] .more { display: block; }
+  .links { display: flex; flex-wrap: wrap; gap: 0 18px; }
+  .links a, .links span { min-height: var(--tap); display: inline-flex; align-items: center; font-size: 14px; overflow-wrap: anywhere; }
+  .links span { color: var(--text-secondary); }
+  .status { font-size: 13px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; overflow-wrap: anywhere; }
+  .status.pending { color: var(--amber); }
+  .status.running { color: var(--accent); }
+  .status.done { color: var(--green); }
+  .status.failed, .status.permission { color: var(--red); }
+  .status.info { color: var(--text-secondary); }
+  .actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; margin-top: 4px; }
+  .btn { min-height: var(--tap); padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius); background: transparent; color: var(--accent); font-size: 14px; }
+  .btn.primary { background: var(--accent-soft); }
+  .btn.danger { color: var(--red); border-color: var(--red-dim); }
+
+  .backdrop { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,0.6); display: none; }
+  .backdrop.open { display: block; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; max-width: 640px; margin: 0 auto; background: var(--bg-panel-alt); border-top: 1px solid var(--border); padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); transform: translateY(110%); transition: transform 0.15s ease-out; }
+  .sheet.open { transform: none; }
+  .sheet h3 { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.14em; color: var(--accent); margin-bottom: 10px; overflow-wrap: anywhere; }
+  .sheet textarea { width: 100%; min-height: 60px; padding: 8px; background: var(--bg); color: var(--text); border: 1px solid var(--border-soft); border-radius: var(--radius); font: inherit; font-size: 16px; }
+  .reasons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+  .stack { display: flex; flex-direction: column; gap: 8px; }
+  .command { font-size: 13px; color: var(--text-secondary); user-select: all; overflow-wrap: anywhere; padding: 4px 0; }
+
+  .undo-stack { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; flex-direction: column; gap: 6px; padding: 8px 16px calc(8px + env(safe-area-inset-bottom)); pointer-events: none; }
+  .undo-bar { pointer-events: auto; width: 100%; max-width: 640px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-left: 12px; background: rgba(20,16,4,0.96); border: 1px solid var(--amber); border-radius: var(--radius); color: var(--amber); }
+  .undo-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .undo-bar .btn { color: var(--amber); border: 0; border-left: 1px solid var(--amber); border-radius: 0; flex: 0 0 auto; }
+  .toast { position: fixed; top: 12px; left: 16px; right: 16px; z-index: 30; max-width: 640px; margin: 0 auto; padding: 10px 12px; background: var(--bg-panel-alt); border: 1px solid var(--accent); border-radius: var(--radius); color: var(--text); overflow-wrap: anywhere; }
+  .card-head { display: flex; gap: 10px; align-items: flex-start; }
+  .score { flex: 0 0 auto; min-width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--accent-dim); border-radius: var(--radius); font-family: var(--font-display); font-size: 16px; color: var(--accent); }
+  .score.worth_a_look { color: var(--amber); border-color: var(--amber-dim); }
+  .score.low { color: var(--text-secondary); border-color: var(--border-soft); }
+  .score .lock { color: var(--red); font-size: 11px; margin-right: 2px; }
+  .band-head { width: 100%; display: flex; justify-content: space-between; align-items: center; min-height: var(--tap); margin: 14px 0 6px; padding: 0; border: 0; border-bottom: 1px solid var(--border-soft); background: transparent; color: var(--text); font-family: var(--font-display); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; }
+  .band-head[aria-expanded="false"] + .grid { display: none; }
+  .badge.moved { color: var(--accent); border-color: var(--accent); }
+  .summary { font-size: 13px; color: var(--text); }
+  .pay.estimated { color: var(--amber); }
+  .chip-flag { font-size: 11px; padding: 1px 6px; margin-left: 6px; border: 1px solid var(--amber-dim); border-radius: 10px; color: var(--amber); }
+  .fitgap { font-size: 13px; overflow-wrap: anywhere; }
+  .fitgap b { color: var(--text-secondary); font-weight: normal; }
+  .whyrank { font-size: 13px; color: var(--text); overflow-wrap: anywhere; }
+  .breakdown { display: none; font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+  .why[aria-expanded="true"] .breakdown { display: grid; grid-template-columns: 1fr auto auto auto; gap: 2px 10px; }
+  .breakdown .ev { grid-column: 1 / -1; color: var(--text-muted); margin-bottom: 4px; }
+  .move-hint { font-size: 12px; color: var(--amber); }
+  .top-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .rank-btn { min-height: var(--tap); padding: 0 12px; border: 1px solid var(--border); border-radius: 22px; background: transparent; color: var(--accent); font-size: 13px; white-space: nowrap; }
+  .rank-btn.dirty { color: var(--amber); border-color: var(--amber-dim); }
+  .bands-error { color: var(--red); font-size: 12px; min-height: 16px; margin: -8px 0 10px; }
+  .rank-conflict { border: 1px solid var(--amber); color: var(--amber); padding: 8px; margin-bottom: 10px; font-size: 13px; }
+  .rank-sheet { max-height: 85vh; overflow-y: auto; }
+  @media (min-width: 768px) {
+    .rank-sheet { left: auto; right: 0; top: 0; bottom: 0; width: 380px; max-width: 380px; max-height: none; border-top: 0; border-left: 1px solid var(--border); transform: translateX(110%); }
+    .rank-sheet.open { transform: none; }
+  }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .slider-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; margin-bottom: 10px; font-size: 13px; }
+  .slider-row input[type=range] { grid-column: 1 / -1; width: 100%; min-height: var(--tap); accent-color: var(--accent); }
+  .floor-row { display: grid; grid-template-columns: var(--tap) 1fr var(--tap); gap: 8px; margin: 6px 0 14px; }
+  .floor-row input { min-height: var(--tap); text-align: center; background: var(--bg); color: var(--text); border: 1px solid var(--border-soft); border-radius: var(--radius); font: inherit; font-size: 16px; }
+  .rank-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <div class="top-row">
+      <nav class="nav" aria-label="Pages"><a href="/jobs" aria-current="page">Jobs board</a></nav>
+      <button class="rank-btn" id="rank-btn" type="button" aria-haspopup="dialog" aria-controls="rank-sheet">Ranking: Balanced (default settings)</button>
+    </div>
+    <div class="chips" id="chips" role="toolbar" aria-label="Filter leads"></div>
+    <input class="search" id="search" type="search" placeholder="Search company or role" autocomplete="off" aria-label="Search company or role">
+  </div>
+</header>
+<div class="error-banner" id="error" role="alert" hidden></div>
+<main id="sections" aria-live="polite"></main>
+
+<div class="undo-stack" id="undo-stack"></div>
+<div class="backdrop" id="backdrop"></div>
+
+<div class="sheet" id="skip-sheet" role="dialog" aria-modal="true" aria-labelledby="skip-title">
+  <h3 id="skip-title">Skip — why?</h3>
+  <textarea id="skip-note" maxlength="500" placeholder="Optional note (type it first, then tap a reason)"></textarea>
+  <div class="reasons" id="skip-reasons"></div>
+  <button class="btn" id="skip-cancel" type="button" style="width:100%">Cancel</button>
+</div>
+
+<div class="sheet" id="help-sheet" role="dialog" aria-modal="true" aria-labelledby="help-title">
+  <h3 id="help-title">Need help</h3>
+  <div class="stack">
+    <button class="btn primary" id="help-prep" type="button">Draft prep pack</button>
+    <button class="btn" id="help-copy" type="button">Copy terminal command</button>
+    <div class="command" id="help-command"></div>
+    <button class="btn" id="help-cancel" type="button">Cancel</button>
+  </div>
+</div>
+
+<div class="sheet rank-sheet" id="rank-sheet" role="dialog" aria-modal="true" aria-labelledby="rank-title">
+  <h3 id="rank-title">Ranking settings</h3>
+  <div class="rank-conflict" id="rank-conflict" hidden>Settings changed on another device. Your edits are kept here.
+    <button class="btn" id="rank-reload" type="button">Reload settings</button></div>
+  <div class="presets" id="rank-presets" role="group" aria-label="Preset"></div>
+  <div id="rank-sliders"></div>
+  <label for="rank-floor" class="meta">Annual base floor (verified pay below it caps the score)</label>
+  <div class="floor-row">
+    <button class="btn" id="rank-floor-minus" type="button" aria-label="Lower floor by $5,000">&minus;</button>
+    <input id="rank-floor" type="text" inputmode="numeric" autocomplete="off" aria-label="Annual base floor">
+    <button class="btn" id="rank-floor-plus" type="button" aria-label="Raise floor by $5,000">+</button>
+  </div>
+  <label for="rank-apply" class="meta">"Apply now" starts at score</label>
+  <div class="floor-row">
+    <button class="btn" id="rank-apply-minus" type="button" aria-label="Lower by 5">&minus;</button>
+    <input id="rank-apply" type="text" inputmode="numeric" autocomplete="off" aria-label="Apply now threshold">
+    <button class="btn" id="rank-apply-plus" type="button" aria-label="Raise by 5">+</button>
+  </div>
+  <label for="rank-worth" class="meta">"Worth a look" starts at score</label>
+  <div class="floor-row">
+    <button class="btn" id="rank-worth-minus" type="button" aria-label="Lower by 5">&minus;</button>
+    <input id="rank-worth" type="text" inputmode="numeric" autocomplete="off" aria-label="Worth a look threshold">
+    <button class="btn" id="rank-worth-plus" type="button" aria-label="Raise by 5">+</button>
+  </div>
+  <div class="bands-error" id="rank-bands-error" role="alert"></div>
+  <div class="rank-actions">
+    <button class="btn" id="rank-revert" type="button">Revert</button>
+    <button class="btn" id="rank-close" type="button">Close</button>
+    <button class="btn primary" id="rank-save" type="button">Save</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="/jobs_scoring.js"></script>
+<script src="/jobs.js"></script>
+<script>
+(function () {
+  'use strict';
+  const L = window.JobsLogic;
+  const R = window.JobsScoring;
+  const state = { leads: [], filter: null, query: '', expanded: new Set(), expired: new Set(), sheetLead: null, pollTimer: null,
+    busy: new Set(),            // lead ids with an action POST in flight (taps ignored, buttons disabled)
+    seq: 0, floor: 0,           // request sequencing: a GET issued before the latest applied POST result is stale
+    lastRefreshAt: -1e9,
+    cards: new Map(), chipsSig: '', sectionsSig: '', undoSig: '', undoNodes: new Map(),
+    config: JSON.parse(JSON.stringify(R.DEFAULT_CONFIG)), draft: null, usingDefaults: true, configLoaded: false,
+    leadsDir: null, dispatchEnabled: true,
+    ranked: [], placed: new Map(), rankPending: false, collapsed: new Set(['low']) };
+  state.draft = L.draftFromConfig(state.config);
+  const $ = (id) => document.getElementById(id);
+  let toastTimer = null;
+  // Monotonic clock: elapsed time never depends on the phone's absolute clock.
+  const now = () => performance.now();
+
+  // ---- DOM helpers: text only ever goes in through textContent ----------------
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function extLink(href, text) {
+    const a = el('a', null, text);
+    a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    return a;
+  }
+  function button(label, cls, onClick) {
+    const b = el('button', 'btn' + (cls ? ' ' + cls : ''), label);
+    b.type = 'button';
+    b.addEventListener('click', onClick);
+    return b;
+  }
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, 4000);
+  }
+  function showError(msg) { const e = $('error'); e.textContent = msg; e.hidden = false; }
+
+  // ---- API ----------------------------------------------------------------------
+  async function api(method, path, body) {
+    const opts = { method, headers: {} };
+    if (body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    const res = await fetch(path, opts);
+    let data = null;
+    try { data = await res.json(); } catch (_) { data = null; }
+    if (!res.ok) {
+      const d = data && data.detail;
+      const err = new Error(typeof d === 'string' ? d : (d ? JSON.stringify(d) : 'HTTP ' + res.status));
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+  async function refresh() {
+    const issued = ++state.seq;
+    state.lastRefreshAt = now();
+    try {
+      const data = await api('GET', '/api/jobs/leads');
+      // Stale: an action/undo/retry result landed after this GET was issued; it is newer than this list.
+      if (issued > state.floor) state.leads = L.stampLeads(data.leads || [], now());
+      if (data.leads_dir) state.leadsDir = data.leads_dir;
+      if (typeof data.dispatch_enabled === 'boolean') state.dispatchEnabled = data.dispatch_enabled;
+      $('error').hidden = true;
+    } catch (e) {
+      showError('Could not load leads: ' + e.message);
+    }
+    render();
+    schedulePoll();
+  }
+  // focus and visibilitychange usually fire together; one refresh is enough.
+  function refreshIfStale() { if (now() - state.lastRefreshAt > 1000) refresh(); }
+  function schedulePoll() {
+    clearTimeout(state.pollTimer);
+    state.pollTimer = setTimeout(refresh, L.pollIntervalMs(state.leads));
+  }
+  function applyUpdate(updated) {
+    state.floor = ++state.seq;
+    state.leads = L.replaceLead(state.leads, updated, now());
+    render();
+    schedulePoll();
+  }
+  // One POST per lead at a time: further taps are ignored until it settles.
+  async function post(leadId, path, body, failPrefix, okToast) {
+    if (state.busy.has(leadId)) return;
+    state.busy.add(leadId);
+    renderSections();
+    let updated = null;
+    try { updated = await api('POST', '/api/jobs/leads/' + leadId + path, body); }
+    catch (e) { toast((e.status === 409 ? 'Not now: ' : failPrefix + ': ') + e.message); }
+    state.busy.delete(leadId);
+    if (updated) { applyUpdate(updated); if (okToast) toast(okToast); }
+    else refresh();
+  }
+  function send(lead, body) { closeSheets(); return post(lead.lead_id, '/action', body, 'Failed'); }
+  function undo(leadId) { return post(leadId, '/undo', undefined, 'Undo failed', 'Undone'); }
+  function retry(lead, grant) { return post(lead.lead_id, '/retry', { grant: !!grant }, 'Retry failed'); }
+
+  // ---- rendering ----------------------------------------------------------------
+  function settingsDirty() { return L.isDirty(state.draft, state.config); }
+  function liveConfig() { return L.previewConfig(state.config, state.draft); }
+  function rerank() { state.ranked = R.rankLeads(state.leads, liveConfig(), Date.now()); }
+  function scheduleRerank() {                     // one re-score + re-order per frame while a slider moves
+    if (state.rankPending) return;
+    state.rankPending = true;
+    requestAnimationFrame(() => { state.rankPending = false; rerank(); renderSections(); if (window.renderRankButton) window.renderRankButton(); });
+  }
+  function render() { rerank(); renderChips(); renderSections(); renderUndo(); }
+
+  function renderChips() {
+    const counts = L.countSections(state.leads);
+    const sig = JSON.stringify([counts, state.filter]);
+    if (sig === state.chipsSig) return;   // unchanged: keep the buttons a finger may be on
+    state.chipsSig = sig;
+    const box = $('chips');
+    box.replaceChildren();
+    L.SECTIONS.forEach((s) => {
+      const b = el('button', 'chip', s.label + ' ' + counts[s.key]);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(state.filter === s.key));
+      b.addEventListener('click', () => { state.filter = state.filter === s.key ? null : s.key; render(); });
+      box.appendChild(b);
+    });
+  }
+
+  // Lead content that affects the DOM; the ticking countdown (undo_remaining_s, _receivedAt) is excluded
+  // because the 1 s tick patches that text in place. r = the placed item (band/overridden/marked change the button set).
+  function leadSig(lead, r) {
+    const { undo_remaining_s, _receivedAt, ...rest } = lead;
+    return JSON.stringify(rest) + (state.busy.has(lead.lead_id) ? '|busy' : '') + (undo_remaining_s == null ? '|n' : '|u')
+      + '|' + (r ? r.band + r.overridden + r.marked : '') + '|' + settingsDirty() + '|' + state.dispatchEnabled;
+  }
+  const placedOf = (it) => (it && it.score ? it : null);
+  const shown = (lead) => L.shownFor(state.placed.get(lead.lead_id) || null, settingsDirty());
+  // Rebuild only when the visible structure changed, so buttons are never replaced under a finger.
+  function renderSections() {
+    const groups = L.groupLeads(state.leads, state.filter, state.query, state.ranked, liveConfig().bands);
+    const boardGroup = groups.find((g) => g.key === 'board');
+    state.placed = new Map();
+    if (boardGroup) boardGroup.bands.forEach((b) => b.items.forEach((it) => state.placed.set(it.lead.lead_id, it)));
+    const bandsOf = (g) => g.bands || [{ key: '', items: g.leads.map((lead) => ({ lead })) }];
+    // The score signature is part of the section signature so a re-score that keeps the order still reaches patchScore.
+    const sig = JSON.stringify([settingsDirty(), [...state.collapsed], ...groups.map((g) => [g.key, g.label, bandsOf(g).map((b) =>
+      [b.key, b.items.map((it) => it.lead.lead_id + ':' + leadSig(it.lead, placedOf(it)) + ':' + L.scoreSig(placedOf(it)))])])]);
+    if (sig === state.sectionsSig) return;
+    state.sectionsSig = sig;
+    const main = $('sections');
+    const next = new Map();
+    main.replaceChildren();
+    const fillGrid = (grid, items) => {
+      if (!items.length) grid.appendChild(el('p', 'empty', 'Nothing here.'));
+      items.forEach((it) => {
+        const l = it.lead;
+        const r = placedOf(it);
+        const s = leadSig(l, r);
+        const ss = L.scoreSig(r);
+        const cached = state.cards.get(l.lead_id);
+        let node;
+        if (cached && cached.sig === s) {
+          node = cached.node;
+          if (cached.scoreSig !== ss) patchScore(node, L.cardModel(l, r));
+        } else node = card(l, r);
+        next.set(l.lead_id, { sig: s, scoreSig: ss, node: node });
+        grid.appendChild(node);
+      });
+    };
+    groups.forEach((g) => {
+      const sec = el('section', 'section');
+      sec.appendChild(el('h2', null, g.label + ' (' + g.leads.length + ')'));
+      if (g.bands) {
+        const items = new Map(g.bands.map((b) => [b.key, b.items]));
+        L.bandHeaders(g, state.collapsed).forEach((h) => {
+          const head = el('button', 'band-head', h.label + ' (' + h.count + ')');
+          head.type = 'button';
+          head.dataset.band = h.key;
+          head.setAttribute('aria-expanded', String(h.expanded));
+          head.addEventListener('click', () => {
+            if (state.collapsed.has(h.key)) state.collapsed.delete(h.key); else state.collapsed.add(h.key);
+            renderSections();
+          });
+          sec.appendChild(head);
+          const grid = el('div', 'grid');
+          fillGrid(grid, items.get(h.key) || []);
+          sec.appendChild(grid);
+        });
+      } else {
+        const grid = el('div', 'grid');
+        fillGrid(grid, bandsOf(g)[0].items);
+        sec.appendChild(grid);
+      }
+      main.appendChild(sec);
+    });
+    state.cards = next;
+  }
+
+  function patchScore(node, m) {
+    const badge = node.querySelector('[data-role=score]');
+    if (badge) {
+      const none = m.scoreText == null;
+      badge.replaceChildren();
+      if (!none && m.gated) badge.appendChild(el('span', 'lock', '\uD83D\uDD12'));
+      badge.appendChild(document.createTextNode(none ? '\u2014' : (m.gated ? '\u2264' + m.scoreText : m.scoreText)));
+      badge.className = 'score' + (none ? ' low' : m.colorBand === 'apply_now' ? '' : ' ' + m.colorBand);
+      badge.setAttribute('aria-label', none ? 'no score' : 'score ' + m.scoreText + (m.rank ? ', rank ' + m.rank : '') + (m.gated ? ', capped by pay floor' : ''));
+    }
+    const wr = node.querySelector('[data-role=whyrank]');
+    if (wr) wr.textContent = m.whyRank ? 'Why this rank: ' + m.whyRank : '';
+    const bd = node.querySelector('[data-role=breakdown]');
+    if (bd) {
+      bd.replaceChildren();
+      m.breakdown.forEach((r) => {
+        bd.appendChild(el('span', null, r.label));
+        bd.appendChild(el('span', null, String(r.score)));
+        bd.appendChild(el('span', null, r.pct + '%'));
+        bd.appendChild(el('span', null, '+' + r.points));
+        bd.appendChild(el('span', 'ev', r.evidence));
+      });
+    }
+  }
+
+  function card(lead, ranked) {
+    const t = lead.triage || {};
+    const d = lead.decision || {};
+    const m = L.cardModel(lead, ranked);
+    const c = el('article', 'card' + (d.pending ? ' pending' : ''));
+    const head = el('div', 'card-head');
+    const badge = el('span', 'score');
+    badge.dataset.role = 'score';
+    head.appendChild(badge);
+    head.appendChild(el('div', 'title', (t.company || 'Unknown company') + ' \u2014 ' + (t.role_title || 'Unknown role')));
+    c.appendChild(head);
+    if (m.note) c.appendChild(el('div', 'meta', m.note));
+    if (m.summary) c.appendChild(el('div', 'summary', m.summary));
+    const meta = el('div', 'meta');
+    meta.appendChild(el('span', null, m.meta));
+    if (m.pay) {
+      meta.appendChild(el('span', 'pay ' + m.pay.kind, (m.meta ? ' \u00b7 ' : '') + m.pay.text));
+      if (m.pay.unspecified) meta.appendChild(el('span', 'chip-flag', 'comp unspecified'));
+    }
+    c.appendChild(meta);
+    const badges = el('div', 'badges');
+    L.badgesFor(lead).forEach((b) => badges.appendChild(el('span', 'badge' + (b.charAt(0) === '\u2191' ? ' warm' : ''), b)));
+    if (m.movedByYou) badges.appendChild(el('span', 'badge moved', 'moved by you'));
+    if (badges.childNodes.length) c.appendChild(badges);
+    const net = L.networkLine(lead);
+    if (net) c.appendChild(el('div', 'network', net));
+    if (m.yourNote) { const n = el('div', 'fitgap'); n.appendChild(el('b', null, 'Your note: ')); n.appendChild(document.createTextNode(m.yourNote)); c.appendChild(n); }
+    if (m.fit) { const f = el('div', 'fitgap'); f.appendChild(el('b', null, ranked ? 'Why you fit: ' : 'Old triage: ')); f.appendChild(document.createTextNode(m.fit)); c.appendChild(f); }
+    if (m.gap) { const g = el('div', 'fitgap'); g.appendChild(el('b', null, 'Main gap: ')); g.appendChild(document.createTextNode(m.gap)); c.appendChild(g); }
+    const why = el('div', 'why');
+    why.setAttribute('role', 'button');
+    why.tabIndex = 0;
+    const wr = el('div', 'whyrank');
+    wr.dataset.role = 'whyrank';
+    why.appendChild(wr);
+    const bd = el('div', 'breakdown');
+    bd.dataset.role = 'breakdown';
+    why.appendChild(bd);
+    why.setAttribute('aria-expanded', String(state.expanded.has(lead.lead_id)));
+    const toggle = () => {
+      if (state.expanded.has(lead.lead_id)) state.expanded.delete(lead.lead_id); else state.expanded.add(lead.lead_id);
+      why.setAttribute('aria-expanded', String(state.expanded.has(lead.lead_id)));
+    };
+    why.addEventListener('click', toggle);
+    why.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+    if (ranked) c.appendChild(why);
+    patchScore(c, m);
+
+    const links = el('div', 'links');
+    const post = L.postingLink(lead);
+    links.appendChild(post.href ? extLink(post.href, post.label) : el('span', null, post.label));
+    const eng = L.engageLink(lead);
+    if (eng) links.appendChild(extLink(eng.href, eng.label));
+    c.appendChild(links);
+
+    const st = L.statusLine(lead, L.remainingSeconds(lead, now()));
+    if (st) c.appendChild(statusEl(lead, st));
+
+    const acts = L.actionsFor(lead, ranked, { settingsDirty: settingsDirty(), dispatchEnabled: state.dispatchEnabled });
+    if (acts.length) {
+      const row = el('div', 'actions');
+      let hint = null;
+      acts.forEach((a) => {
+        const cls = a.action === 'applied' ? 'primary' : (a.action === 'skip' ? 'danger' : '');
+        const b = button(a.label, cls, () => onAction(lead, a));
+        if (state.busy.has(lead.lead_id) || a.disabled) b.disabled = true;
+        if (a.disabled && !hint) hint = a.hint;
+        row.appendChild(b);
+      });
+      c.appendChild(row);
+      if (hint) c.appendChild(el('div', 'move-hint', hint));
+    }
+    return c;
+  }
+
+  function statusEl(lead, st) {
+    const s = el('div', 'status ' + st.kind);
+    if (st.kind === 'pending') s.dataset.countdown = lead.lead_id;
+    s.appendChild(st.href ? extLink(st.href, st.text) : el('span', null, st.text));
+    const busy = state.busy.has(lead.lead_id);
+    if (st.button === 'retry') { const b = button('Retry', '', () => retry(lead, false)); b.disabled = busy; s.appendChild(b); }
+    if (st.button === 'grant') { const b = button('Grant', '', () => retry(lead, true)); b.disabled = busy; s.appendChild(b); }
+    return s;
+  }
+
+  function renderUndo() {
+    const bars = L.undoBars(state.leads, now());
+    const sig = bars.map((u) => u.lead_id + '|' + u.label).join('\n');
+    if (sig !== state.undoSig) {   // set of bars changed: rebuild; otherwise only the text is patched
+      state.undoSig = sig;
+      state.undoNodes = new Map();
+      const box = $('undo-stack');
+      box.replaceChildren();
+      bars.forEach((u) => {
+        const bar = el('div', 'undo-bar');
+        const label = el('span', null, '');
+        bar.appendChild(label);
+        bar.appendChild(button('Undo', '', () => undo(u.lead_id)));
+        box.appendChild(bar);
+        state.undoNodes.set(u.lead_id, label);
+      });
+    }
+    bars.forEach((u) => { state.undoNodes.get(u.lead_id).textContent = u.label + ' \u00b7 ' + L.formatCountdown(u.remaining); });
+  }
+
+  // Once a second: undo bars and pending status lines only (no full re-render, so scroll/expansion survive).
+  function tick() {
+    renderUndo();
+    document.querySelectorAll('[data-countdown]').forEach((node) => {
+      const lead = state.leads.find((l) => l.lead_id === node.dataset.countdown);
+      const st = lead && L.statusLine(lead, L.remainingSeconds(lead, now()));
+      if (st && node.firstChild) node.firstChild.textContent = st.text;
+      if (lead && L.remainingSeconds(lead, now()) === 0 && !state.expired.has(lead.lead_id)) {
+        state.expired.add(lead.lead_id); refresh(); // window closed: let the server sweep it
+      }
+    });
+  }
+
+  // ---- sheets & actions ---------------------------------------------------------
+  function onAction(lead, a) {
+    const action = a.action;
+    if (action === 'skip' && a.reason) return send(lead, { action: 'skip', reason: a.reason, note: 'confirmed closed on the Jobs tab', shown: shown(lead) });
+    if (action === 'skip') return openSheet('skip-sheet', lead);
+    if (action === 'help') return openSheet('help-sheet', lead);
+    send(lead, { action: action, shown: shown(lead) });   // move_up, move_down, reset_band, still_open, applied: the Undo bar covers mistakes
+  }
+  function openSheet(id, lead) {
+    state.sheetLead = lead;
+    const company = (lead.triage || {}).company || 'this lead';
+    if (id === 'skip-sheet') { $('skip-title').textContent = 'Skip ' + company + ' — why?'; $('skip-note').value = ''; }
+    if (id === 'help-sheet') { $('help-title').textContent = 'Need help — ' + company; $('help-command').textContent = L.terminalCommand(lead, state.leadsDir); }
+    $('backdrop').classList.add('open');
+    $(id).classList.add('open');
+  }
+  function closeSheets() {
+    ['skip-sheet', 'help-sheet', 'rank-sheet'].forEach((id) => $(id).classList.remove('open'));
+    $('backdrop').classList.remove('open');
+  }
+  function buildSkipReasons() {
+    const box = $('skip-reasons');
+    L.SKIP_REASONS.forEach((r) => box.appendChild(button(r.label, '', () => {
+      const lead = state.sheetLead;
+      if (!lead) return;
+      const note = $('skip-note').value.trim();
+      send(lead, { action: 'skip', reason: r.key, note: note || null, shown: shown(lead) });
+    })));
+  }
+  // Plain http over a private network is not a secure context: navigator.clipboard is missing on a phone.
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => toast('Copied: ' + text), () => fallbackCopy(text));
+      return;
+    }
+    fallbackCopy(text);
+  }
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+    ta.remove();
+    if (ok) toast('Copied: ' + text); else window.prompt('Copy this command:', text);
+  }
+
+  // ---- ranking settings drawer ----------------------------------------------------
+  async function loadConfig() {
+    try {
+      const r = await api('GET', '/api/jobs/scoring-config');
+      state.config = r.config; state.draft = L.draftFromConfig(r.config);
+      state.usingDefaults = false; state.configLoaded = true;
+      if (r.warning) toast(r.warning);
+    } catch (e) {
+      state.usingDefaults = true;      // keep scoring with the embedded defaults; never an empty board
+      toast('Ranking settings unavailable \u2014 using default settings (' + e.message + ')');
+    }
+    $('rank-conflict').hidden = true;
+    renderDrawer(); render();
+  }
+  function renderRankButton() {
+    const b = $('rank-btn');
+    b.textContent = L.rankButtonText({ draft: state.draft, config: state.config, usingDefaults: state.usingDefaults, dirty: settingsDirty() });
+    b.classList.toggle('dirty', settingsDirty());
+  }
+  window.renderRankButton = renderRankButton;
+  function renderDrawer() {
+    const active = L.presetFor(state.draft, state.config.presets);
+    const pBox = $('rank-presets');
+    pBox.replaceChildren();
+    Object.keys(state.config.presets).concat(['Custom']).forEach((name) => {
+      const b = el('button', 'chip', name);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String((active || 'Custom') === name));
+      b.disabled = name === 'Custom';
+      b.addEventListener('click', () => {
+        state.draft = { ...state.draft, weights: L.draftFromConfig({ ...state.config, active_weights: state.config.presets[name] }).weights };
+        renderDrawer(); scheduleRerank();
+      });
+      pBox.appendChild(b);
+    });
+    const sBox = $('rank-sliders');
+    if (!sBox.childNodes.length) {
+      R.FACTORS.forEach((f) => {
+        const row = el('div', 'slider-row');
+        const lab = el('label', null, f.label);
+        lab.htmlFor = 'w-' + f.key;
+        const out = el('span', null, '');
+        out.dataset.pct = f.key;
+        const inp = document.createElement('input');
+        inp.type = 'range'; inp.min = '0'; inp.max = '100'; inp.step = '1'; inp.id = 'w-' + f.key;
+        inp.addEventListener('input', () => {
+          state.draft = { ...state.draft, weights: { ...state.draft.weights, [f.key]: Number(inp.value) } };
+          renderDrawerNumbers(); scheduleRerank();
+        });
+        row.append(lab, out, inp);
+        sBox.appendChild(row);
+      });
+    }
+    R.FACTORS.forEach((f) => { $('w-' + f.key).value = String(state.draft.weights[f.key]); });
+    renderDrawerNumbers();
+  }
+  function renderDrawerNumbers() {
+    const pct = L.percentages(state.draft.weights);
+    document.querySelectorAll('[data-pct]').forEach((n) => { n.textContent = pct[n.dataset.pct] + '%'; });
+    const active = L.presetFor(state.draft, state.config.presets) || 'Custom';
+    $('rank-presets').querySelectorAll('.chip').forEach((b) => b.setAttribute('aria-pressed', String(b.textContent === active)));
+    if (document.activeElement !== $('rank-floor')) $('rank-floor').value = L.formatMoney(state.draft.floor);
+    if (document.activeElement !== $('rank-apply')) $('rank-apply').value = String(state.draft.bands.apply_now_min);
+    if (document.activeElement !== $('rank-worth')) $('rank-worth').value = String(state.draft.bands.worth_a_look_min);
+    const problem = L.bandsProblem(state.draft, state.config.compensation_settings.hard_gate_clamp_ceiling);
+    const zeroWeights = Object.values(state.draft.weights).reduce((a, b) => a + (Number(b) || 0), 0) <= 0;
+    $('rank-bands-error').textContent = problem || (zeroWeights ? 'Set at least one weight above 0' : (state.configLoaded ? '' : 'Settings not loaded \u2014 changes preview only'));
+    $('rank-save').disabled = !!problem || zeroWeights || !state.configLoaded;
+    renderRankButton();
+  }
+  function setFloor(v) { state.draft = { ...state.draft, floor: v }; renderDrawerNumbers(); scheduleRerank(); }
+  function setBand(key, v) {
+    state.draft = { ...state.draft, bands: { ...state.draft.bands, [key]: Math.min(100, Math.max(1, v)) } };
+    renderDrawerNumbers(); scheduleRerank();
+  }
+  [['rank-apply', 'apply_now_min'], ['rank-worth', 'worth_a_look_min']].forEach(([id, key]) => {
+    $(id + '-minus').addEventListener('click', () => setBand(key, L.stepThreshold(state.draft.bands[key], -1)));
+    $(id + '-plus').addEventListener('click', () => setBand(key, L.stepThreshold(state.draft.bands[key], 1)));
+    $(id).addEventListener('change', () => setBand(key, Number(String($(id).value).replace(/[^0-9]/g, '')) || state.draft.bands[key]));
+  });
+  $('rank-floor-minus').addEventListener('click', () => setFloor(L.stepFloor(state.draft.floor, -1)));
+  $('rank-floor-plus').addEventListener('click', () => setFloor(L.stepFloor(state.draft.floor, 1)));
+  $('rank-floor').addEventListener('change', () => {
+    const n = Number(String($('rank-floor').value).replace(/[^0-9]/g, ''));
+    setFloor(Math.min(1000000, Math.max(10000, n || state.draft.floor)));
+  });
+  $('rank-revert').addEventListener('click', () => { state.draft = L.draftFromConfig(state.config); renderDrawer(); scheduleRerank(); });
+  $('rank-reload').addEventListener('click', () => { loadConfig(); });   // explicit: discards the edits
+  $('rank-btn').addEventListener('click', () => { $('rank-sheet').classList.add('open'); $('backdrop').classList.add('open'); });
+  $('rank-close').addEventListener('click', closeSheets);
+  $('rank-save').addEventListener('click', async () => {
+    const body = { expected_version: state.config.version, active_preset: L.presetFor(state.draft, state.config.presets),
+      active_weights: state.draft.weights, compensation_settings: { annual_base_floor: state.draft.floor }, bands: state.draft.bands };
+    try {
+      const r = await api('POST', '/api/jobs/scoring-config', body);
+      state.config = r.config; state.draft = L.draftFromConfig(r.config);
+      $('rank-conflict').hidden = true;
+      toast('Ranking saved'); renderDrawer(); scheduleRerank();
+    } catch (e) {
+      const out = L.settingsSaveOutcome(e.status || 0);
+      if (out === 'conflict') $('rank-conflict').hidden = false;          // edits stay; Reload is the user's choice
+      else toast((out === 'invalid' ? 'Not saved: ' : 'Save failed: ') + e.message);
+    }
+  });
+
+  // ---- wiring -------------------------------------------------------------------
+  buildSkipReasons();
+  $('skip-cancel').addEventListener('click', closeSheets);
+  $('help-cancel').addEventListener('click', closeSheets);
+  $('backdrop').addEventListener('click', closeSheets);
+  $('help-prep').addEventListener('click', () => { if (state.sheetLead) send(state.sheetLead, { action: 'prep', shown: shown(state.sheetLead) }); });
+  $('help-copy').addEventListener('click', () => {
+    const lead = state.sheetLead;
+    if (!lead) return;
+    copyText(L.terminalCommand(lead, state.leadsDir)); // synchronously inside the tap, before any await
+    send(lead, { action: 'terminal', shown: shown(lead) });
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheets(); });
+  $('search').addEventListener('input', (e) => { state.query = e.target.value; renderSections(); });
+  window.addEventListener('focus', refreshIfStale);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshIfStale(); });
+  setInterval(tick, 1000);
+  renderDrawer();
+  refresh();
+  loadConfig();
+})();
+</script>
+</body>
+</html>

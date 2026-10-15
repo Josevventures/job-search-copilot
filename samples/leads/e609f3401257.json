@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "lead_id": "e609f3401257",
+  "canonical_url": "https://jobs.ashbyhq.com/juniperrelay/00000000-0000-4000-8000-000000000020",
+  "intake": {
+    "sources": [
+      {
+        "url": "https://jobs.ashbyhq.com/juniperrelay/00000000-0000-4000-8000-000000000020",
+        "kind": "posting",
+        "poster_name": null,
+        "poster_url": null,
+        "added_via": "slack",
+        "roundup_of": null,
+        "hint": null,
+        "added_at": "2026-10-15T09:00:00+00:00",
+        "note": "Looks like the grid role from the newsletter"
+      }
+    ],
+    "created_at": "2026-10-15T09:00:00+00:00",
+    "jd_links": [
+      "https://jobs.ashbyhq.com/juniperrelay/00000000-0000-4000-8000-000000000020"
+    ]
+  },
+  "triage": {
+    "triage_status": "pending"
+  },
+  "decision": {
+    "decision": null,
+    "history": []
+  }
+}

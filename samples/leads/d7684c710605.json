@@ -1,0 +1,104 @@
+{
+  "schema_version": 2,
+  "lead_id": "d7684c710605",
+  "canonical_url": "https://careers.bluefinch.example/jobs/pm-fleet",
+  "intake": {
+    "sources": [
+      {
+        "url": "https://careers.bluefinch.example/jobs/pm-fleet",
+        "kind": "posting",
+        "poster_name": null,
+        "poster_url": null,
+        "added_via": "slack",
+        "roundup_of": null,
+        "hint": null,
+        "added_at": "2026-10-15T09:00:00+00:00"
+      }
+    ],
+    "created_at": "2026-10-15T09:00:00+00:00",
+    "jd_links": [
+      "https://careers.bluefinch.example/jobs/pm-fleet"
+    ]
+  },
+  "triage": {
+    "triage_status": "complete",
+    "checkpoint_version": 3,
+    "company": "Bluefinch Robotics",
+    "role_title": "Product Manager, Fleet Software",
+    "location": "Boston, MA (onsite)",
+    "pay": "$120,000 - $145,000",
+    "pay_type": "salary",
+    "jd_url": "https://careers.bluefinch.example/jobs/pm-fleet",
+    "jd_read": true,
+    "jd_note": null,
+    "posting_status": "closed",
+    "fit_score": "Medium",
+    "fit_rationale": "Operator-facing dashboards shipped before. Main gap: No robotics background.",
+    "network": {
+      "contacts": [],
+      "summary": ""
+    },
+    "engage": null,
+    "airtable_match": {
+      "relation": "none",
+      "record_id": null,
+      "note": null,
+      "stage": null
+    },
+    "eligibility_note": null,
+    "alternates": [],
+    "draft_answers": null,
+    "fetch_method": "webfetch",
+    "applicant_count": null,
+    "bonus": null,
+    "equity": true,
+    "inbound": null,
+    "job_summary": "Own the dashboard operators use to supervise warehouse robots",
+    "level": "mid",
+    "locations": [
+      {
+        "label": "Boston, MA",
+        "metro": "boston"
+      }
+    ],
+    "main_gap": "No robotics background",
+    "modality": "onsite",
+    "pay_bands": [
+      {
+        "location_metro": "boston",
+        "min": 120000,
+        "max": 145000,
+        "period": "year",
+        "basis": "base"
+      }
+    ],
+    "pay_source": "posting",
+    "posted_date": "2026-09-01",
+    "posted_date_source": "posting",
+    "relocation_assistance": null,
+    "reposted": false,
+    "scores": {
+      "role_fit": {
+        "score": 75,
+        "evidence": "Operator-facing dashboards shipped before"
+      },
+      "domain": {
+        "score": 66,
+        "evidence": "Robotics software, adjacent"
+      }
+    },
+    "bucket": null,
+    "bucket_reason": null,
+    "category": null,
+    "relevance": null,
+    "why": null,
+    "triage_error": null,
+    "batch_id": "sample-batch",
+    "triaged_at": "2026-10-15T09:00:00+00:00",
+    "route": "closed"
+  },
+  "decision": {
+    "decision": null,
+    "history": []
+  }
+}

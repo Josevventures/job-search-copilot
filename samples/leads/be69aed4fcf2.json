@@ -1,0 +1,104 @@
+{
+  "schema_version": 2,
+  "lead_id": "be69aed4fcf2",
+  "canonical_url": "https://careers.mossgrove.example/openings/product-ops",
+  "intake": {
+    "sources": [
+      {
+        "url": "https://careers.mossgrove.example/openings/product-ops",
+        "kind": "posting",
+        "poster_name": "Example Recruiter",
+        "poster_url": "https://www.linkedin.com/posts/example-recruiter_three-climate-pm-roles-share-0000000000000000000",
+        "added_via": "manual",
+        "roundup_of": "https://www.linkedin.com/posts/example-recruiter_three-climate-pm-roles-share-0000000000000000000",
+        "hint": null,
+        "added_at": "2026-10-15T09:00:00+00:00"
+      }
+    ],
+    "created_at": "2026-10-15T09:00:00+00:00",
+    "jd_links": [
+      "https://careers.mossgrove.example/openings/product-ops"
+    ]
+  },
+  "triage": {
+    "triage_status": "complete",
+    "checkpoint_version": 3,
+    "company": "Mossgrove Climate",
+    "role_title": "Product Operations Manager",
+    "location": "Boston, MA (hybrid)",
+    "pay": null,
+    "pay_type": "salary",
+    "jd_url": "https://careers.mossgrove.example/openings/product-ops",
+    "jd_read": true,
+    "jd_note": null,
+    "posting_status": "open",
+    "fit_score": "Medium",
+    "fit_rationale": "Has run release trains; title would be a step sideways. Main gap: Operations title rather than product.",
+    "network": {
+      "contacts": [
+        {
+          "name": "Lee Marchetti",
+          "title": "Data Scientist, Mossgrove Climate",
+          "status": "current",
+          "warmth": "cold",
+          "recommendation": "Met once at a meetup; a short note before applying"
+        }
+      ],
+      "summary": "One cold current contact."
+    },
+    "engage": null,
+    "airtable_match": {
+      "relation": "none",
+      "record_id": null,
+      "note": null,
+      "stage": null
+    },
+    "eligibility_note": null,
+    "alternates": [],
+    "draft_answers": null,
+    "fetch_method": "webfetch",
+    "applicant_count": 95,
+    "bonus": null,
+    "equity": null,
+    "inbound": null,
+    "job_summary": "Run release planning and customer-feedback intake for a climate-data team",
+    "level": "manager",
+    "locations": [
+      {
+        "label": "Boston, MA",
+        "metro": "boston"
+      }
+    ],
+    "main_gap": "Operations title rather than product",
+    "modality": "hybrid",
+    "pay_bands": [],
+    "pay_source": "none",
+    "posted_date": "2026-08-30",
+    "posted_date_source": "linkedin_relative",
+    "relocation_assistance": null,
+    "reposted": false,
+    "scores": {
+      "role_fit": {
+        "score": 68,
+        "evidence": "Has run release trains; title would be a step sideways"
+      },
+      "domain": {
+        "score": 88,
+        "evidence": "Climate data company"
+      }
+    },
+    "bucket": null,
+    "bucket_reason": null,
+    "category": null,
+    "relevance": null,
+    "why": null,
+    "triage_error": null,
+    "batch_id": "sample-batch",
+    "triaged_at": "2026-10-15T09:00:00+00:00",
+    "route": "board"
+  },
+  "decision": {
+    "decision": null,
+    "history": []
+  }
+}

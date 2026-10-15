@@ -1,0 +1,108 @@
+{
+  "schema_version": 2,
+  "lead_id": "e1af5c094d04",
+  "canonical_url": "https://jobs.lever.co/lanternfish/00000000-0000-4000-8000-000000000007",
+  "intake": {
+    "sources": [
+      {
+        "url": "https://jobs.lever.co/lanternfish/00000000-0000-4000-8000-000000000007",
+        "kind": "posting",
+        "poster_name": null,
+        "poster_url": null,
+        "added_via": "slack",
+        "roundup_of": null,
+        "hint": null,
+        "added_at": "2026-10-15T09:00:00+00:00",
+        "note": "Saw the founder's post; ask about the battery pilot"
+      }
+    ],
+    "created_at": "2026-10-15T09:00:00+00:00",
+    "jd_links": [
+      "https://jobs.lever.co/lanternfish/00000000-0000-4000-8000-000000000007"
+    ]
+  },
+  "triage": {
+    "triage_status": "complete",
+    "checkpoint_version": 3,
+    "company": "Lanternfish AI",
+    "role_title": "Founding Product Manager",
+    "location": "Boston, MA (onsite)",
+    "pay": "$85,000 - $98,000",
+    "pay_type": "salary",
+    "jd_url": "https://jobs.lever.co/lanternfish/00000000-0000-4000-8000-000000000007",
+    "jd_read": true,
+    "jd_note": null,
+    "posting_status": "open",
+    "fit_score": "High",
+    "fit_rationale": "Zero-to-one launches at two startups. Main gap: none named.",
+    "network": {
+      "contacts": [],
+      "summary": ""
+    },
+    "engage": null,
+    "airtable_match": {
+      "relation": "none",
+      "record_id": null,
+      "note": null,
+      "stage": null
+    },
+    "eligibility_note": null,
+    "alternates": [],
+    "draft_answers": null,
+    "fetch_method": "webfetch",
+    "applicant_count": 12,
+    "bonus": null,
+    "equity": true,
+    "inbound": {
+      "kind": "hiring_manager_post",
+      "note": "Founder posted the role and invited applications"
+    },
+    "job_summary": "First PM at a seed-stage company building agents for field technicians",
+    "level": "senior",
+    "locations": [
+      {
+        "label": "Boston, MA",
+        "metro": "boston"
+      }
+    ],
+    "main_gap": null,
+    "modality": "onsite",
+    "pay_bands": [
+      {
+        "location_metro": "boston",
+        "min": 85000,
+        "max": 98000,
+        "period": "year",
+        "basis": "base"
+      }
+    ],
+    "pay_source": "posting",
+    "posted_date": "2026-10-12",
+    "posted_date_source": "posting",
+    "relocation_assistance": null,
+    "reposted": false,
+    "scores": {
+      "role_fit": {
+        "score": 81,
+        "evidence": "Zero-to-one launches at two startups"
+      },
+      "domain": {
+        "score": 70,
+        "evidence": "Applied AI for industrial work, adjacent to energy"
+      }
+    },
+    "bucket": null,
+    "bucket_reason": null,
+    "category": null,
+    "relevance": null,
+    "why": null,
+    "triage_error": null,
+    "batch_id": "sample-batch",
+    "triaged_at": "2026-10-15T09:00:00+00:00",
+    "route": "board"
+  },
+  "decision": {
+    "decision": null,
+    "history": []
+  }
+}

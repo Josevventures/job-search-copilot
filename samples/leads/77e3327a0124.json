@@ -1,0 +1,108 @@
+{
+  "schema_version": 2,
+  "lead_id": "77e3327a0124",
+  "canonical_url": "https://job-boards.greenhouse.io/vellumatlas/jobs/4100005",
+  "intake": {
+    "sources": [
+      {
+        "url": "https://job-boards.greenhouse.io/vellumatlas/jobs/4100005",
+        "kind": "posting",
+        "poster_name": null,
+        "poster_url": null,
+        "added_via": "manual",
+        "roundup_of": null,
+        "hint": null,
+        "added_at": "2026-10-15T09:00:00+00:00"
+      }
+    ],
+    "created_at": "2026-10-15T09:00:00+00:00",
+    "jd_links": [
+      "https://job-boards.greenhouse.io/vellumatlas/jobs/4100005"
+    ]
+  },
+  "triage": {
+    "triage_status": "complete",
+    "checkpoint_version": 3,
+    "company": "Vellum Atlas",
+    "role_title": "Senior PM, Mapping Infrastructure",
+    "location": "Seattle, WA / Remote (US) (remote)",
+    "pay": "$150,000 - $182,000",
+    "pay_type": "salary",
+    "jd_url": "https://job-boards.greenhouse.io/vellumatlas/jobs/4100005",
+    "jd_read": true,
+    "jd_note": null,
+    "posting_status": "open",
+    "fit_score": "Medium",
+    "fit_rationale": "Platform PM work; geospatial is new. Main gap: No geospatial background.",
+    "network": {
+      "contacts": [],
+      "summary": ""
+    },
+    "engage": null,
+    "airtable_match": {
+      "relation": "none",
+      "record_id": null,
+      "note": null,
+      "stage": null
+    },
+    "eligibility_note": null,
+    "alternates": [],
+    "draft_answers": null,
+    "fetch_method": "api",
+    "applicant_count": 420,
+    "bonus": true,
+    "equity": null,
+    "inbound": null,
+    "job_summary": "Own the map-tile pipeline that partners build on",
+    "level": "senior",
+    "locations": [
+      {
+        "label": "Seattle, WA",
+        "metro": "seattle"
+      },
+      {
+        "label": "Remote (US)",
+        "metro": "remote_us"
+      }
+    ],
+    "main_gap": "No geospatial background",
+    "modality": "remote",
+    "pay_bands": [
+      {
+        "location_metro": "remote_us",
+        "min": 150000,
+        "max": 182000,
+        "period": "year",
+        "basis": "base"
+      }
+    ],
+    "pay_source": "posting",
+    "posted_date": "2026-09-20",
+    "posted_date_source": "posting",
+    "relocation_assistance": null,
+    "reposted": true,
+    "scores": {
+      "role_fit": {
+        "score": 70,
+        "evidence": "Platform PM work; geospatial is new"
+      },
+      "domain": {
+        "score": 74,
+        "evidence": "Data platform for developers"
+      }
+    },
+    "bucket": null,
+    "bucket_reason": null,
+    "category": null,
+    "relevance": null,
+    "why": null,
+    "triage_error": null,
+    "batch_id": "sample-batch",
+    "triaged_at": "2026-10-15T09:00:00+00:00",
+    "route": "board"
+  },
+  "decision": {
+    "decision": null,
+    "history": []
+  }
+}

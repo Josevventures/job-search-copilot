@@ -1,0 +1,104 @@
+{
+  "schema_version": 2,
+  "lead_id": "5ecf16cefdab",
+  "canonical_url": "https://job-boards.greenhouse.io/quarrynine/jobs/4100009",
+  "intake": {
+    "sources": [
+      {
+        "url": "https://job-boards.greenhouse.io/quarrynine/jobs/4100009",
+        "kind": "posting",
+        "poster_name": null,
+        "poster_url": null,
+        "added_via": "manual",
+        "roundup_of": null,
+        "hint": null,
+        "added_at": "2026-10-15T09:00:00+00:00"
+      }
+    ],
+    "created_at": "2026-10-15T09:00:00+00:00",
+    "jd_links": [
+      "https://job-boards.greenhouse.io/quarrynine/jobs/4100009"
+    ]
+  },
+  "triage": {
+    "triage_status": "complete",
+    "checkpoint_version": 3,
+    "company": "Quarry Nine",
+    "role_title": "Staff Product Manager, Billing",
+    "location": "San Francisco, CA (onsite)",
+    "pay": "$210,000 - $250,000",
+    "pay_type": "salary",
+    "jd_url": "https://job-boards.greenhouse.io/quarrynine/jobs/4100009",
+    "jd_read": true,
+    "jd_note": null,
+    "posting_status": "open",
+    "fit_score": "Low",
+    "fit_rationale": "Staff level asks for 10+ years; record shows about 6. Main gap: Years of experience well short of the stated bar.",
+    "network": {
+      "contacts": [],
+      "summary": ""
+    },
+    "engage": null,
+    "airtable_match": {
+      "relation": "none",
+      "record_id": null,
+      "note": null,
+      "stage": null
+    },
+    "eligibility_note": null,
+    "alternates": [],
+    "draft_answers": null,
+    "fetch_method": "api",
+    "applicant_count": 210,
+    "bonus": true,
+    "equity": true,
+    "inbound": null,
+    "job_summary": "Re-platform usage-based billing for an infrastructure company",
+    "level": "director_plus",
+    "locations": [
+      {
+        "label": "San Francisco, CA",
+        "metro": "san_francisco"
+      }
+    ],
+    "main_gap": "Years of experience well short of the stated bar",
+    "modality": "onsite",
+    "pay_bands": [
+      {
+        "location_metro": "san_francisco",
+        "min": 210000,
+        "max": 250000,
+        "period": "year",
+        "basis": "base"
+      }
+    ],
+    "pay_source": "posting",
+    "posted_date": "2026-10-07",
+    "posted_date_source": "posting",
+    "relocation_assistance": null,
+    "reposted": false,
+    "scores": {
+      "role_fit": {
+        "score": 38,
+        "evidence": "Staff level asks for 10+ years; record shows about 6"
+      },
+      "domain": {
+        "score": 62,
+        "evidence": "Infrastructure tooling, billing focus"
+      }
+    },
+    "bucket": null,
+    "bucket_reason": null,
+    "category": null,
+    "relevance": null,
+    "why": null,
+    "triage_error": null,
+    "batch_id": "sample-batch",
+    "triaged_at": "2026-10-15T09:00:00+00:00",
+    "route": "board"
+  },
+  "decision": {
+    "decision": null,
+    "history": []
+  }
+}

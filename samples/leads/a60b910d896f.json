@@ -1,0 +1,118 @@
+{
+  "schema_version": 2,
+  "lead_id": "a60b910d896f",
+  "canonical_url": "https://jobs.ashbyhq.com/kestrelledger/00000000-0000-4000-8000-000000000003",
+  "intake": {
+    "sources": [
+      {
+        "url": "https://jobs.ashbyhq.com/kestrelledger/00000000-0000-4000-8000-000000000003",
+        "kind": "posting",
+        "poster_name": null,
+        "poster_url": null,
+        "added_via": "manual",
+        "roundup_of": null,
+        "hint": null,
+        "added_at": "2026-10-15T09:00:00+00:00"
+      }
+    ],
+    "created_at": "2026-10-15T09:00:00+00:00",
+    "jd_links": [
+      "https://jobs.ashbyhq.com/kestrelledger/00000000-0000-4000-8000-000000000003"
+    ]
+  },
+  "triage": {
+    "triage_status": "complete",
+    "checkpoint_version": 3,
+    "company": "Kestrel Ledger",
+    "role_title": "Product Lead, Carbon Accounting",
+    "location": "New York, NY / Boston, MA (hybrid)",
+    "pay": "$165,000 - $195,000",
+    "pay_type": "salary",
+    "jd_url": "https://jobs.ashbyhq.com/kestrelledger/00000000-0000-4000-8000-000000000003",
+    "jd_read": true,
+    "jd_note": null,
+    "posting_status": "open",
+    "fit_score": "Medium",
+    "fit_rationale": "Strong IC record; has not managed PMs. Main gap: No people-management title.",
+    "network": {
+      "contacts": [],
+      "summary": ""
+    },
+    "engage": null,
+    "airtable_match": {
+      "relation": "none",
+      "record_id": null,
+      "note": null,
+      "stage": null
+    },
+    "eligibility_note": null,
+    "alternates": [],
+    "draft_answers": null,
+    "fetch_method": "api",
+    "applicant_count": null,
+    "bonus": null,
+    "equity": true,
+    "inbound": {
+      "kind": "recruiter_outreach",
+      "note": "Recruiter messaged after the candidate's post on reporting tools"
+    },
+    "job_summary": "Lead a three-PM team building emissions reporting for mid-size companies",
+    "level": "manager",
+    "locations": [
+      {
+        "label": "New York, NY",
+        "metro": "new_york"
+      },
+      {
+        "label": "Boston, MA",
+        "metro": "boston"
+      }
+    ],
+    "main_gap": "No people-management title",
+    "modality": "hybrid",
+    "pay_bands": [
+      {
+        "location_metro": "new_york",
+        "min": 165000,
+        "max": 195000,
+        "period": "year",
+        "basis": "base"
+      },
+      {
+        "location_metro": "boston",
+        "min": 155000,
+        "max": 185000,
+        "period": "year",
+        "basis": "base"
+      }
+    ],
+    "pay_source": "ats_api",
+    "posted_date": "2026-10-02",
+    "posted_date_source": "posting",
+    "relocation_assistance": null,
+    "reposted": false,
+    "scores": {
+      "role_fit": {
+        "score": 62,
+        "evidence": "Strong IC record; has not managed PMs"
+      },
+      "domain": {
+        "score": 90,
+        "evidence": "Climate software with a clear product surface"
+      }
+    },
+    "bucket": null,
+    "bucket_reason": null,
+    "category": null,
+    "relevance": null,
+    "why": null,
+    "triage_error": null,
+    "batch_id": "sample-batch",
+    "triaged_at": "2026-10-15T09:00:00+00:00",
+    "route": "board"
+  },
+  "decision": {
+    "decision": null,
+    "history": []
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "schema_version": 2,
+  "lead_id": "b782b727ca9a",
+  "canonical_url": "https://careers.pinecrest.example/jobs/senior-pm-charging",
+  "intake": {
+    "sources": [
+      {
+        "url": "https://careers.pinecrest.example/jobs/senior-pm-charging",
+        "kind": "posting",
+        "poster_name": "Example Recruiter",
+        "poster_url": "https://www.linkedin.com/posts/example-recruiter_three-climate-pm-roles-share-0000000000000000000",
+        "added_via": "manual",
+        "roundup_of": "https://www.linkedin.com/posts/example-recruiter_three-climate-pm-roles-share-0000000000000000000",
+        "hint": null,
+        "added_at": "2026-10-15T09:00:00+00:00"
+      }
+    ],
+    "created_at": "2026-10-15T09:00:00+00:00",
+    "jd_links": [
+      "https://careers.pinecrest.example/jobs/senior-pm-charging"
+    ]
+  },
+  "triage": {
+    "triage_status": "complete",
+    "checkpoint_version": 3,
+    "company": "Pinecrest Mobility",
+    "role_title": "Senior PM, EV Charging Network",
+    "location": "Washington, DC / Boston, MA (hybrid)",
+    "pay": "$140,000 - $170,000",
+    "pay_type": "salary",
+    "jd_url": "https://careers.pinecrest.example/jobs/senior-pm-charging",
+    "jd_read": true,
+    "jd_note": null,
+    "posting_status": "open",
+    "fit_score": "Medium",
+    "fit_rationale": "Hardware-adjacent software PM; pricing experiments shipped. Main gap: No charging-hardware exposure.",
+    "network": {
+      "contacts": [
+        {
+          "name": "Robin Hale",
+          "title": "Former Head of Ops, Pinecrest Mobility",
+          "status": "former",
+          "warmth": "warm",
+          "recommendation": "Ask for a read on the team before applying"
+        }
+      ],
+      "summary": "One warm former contact."
+    },
+    "engage": null,
+    "airtable_match": {
+      "relation": "none",
+      "record_id": null,
+      "note": null,
+      "stage": null
+    },
+    "eligibility_note": null,
+    "alternates": [],
+    "draft_answers": null,
+    "fetch_method": "webfetch",
+    "applicant_count": 150,
+    "bonus": true,
+    "equity": null,
+    "inbound": null,
+    "job_summary": "Own uptime and pricing for a public charging network",
+    "level": "senior",
+    "locations": [
+      {
+        "label": "Washington, DC",
+        "metro": "washington_dc"
+      },
+      {
+        "label": "Boston, MA",
+        "metro": "boston"
+      }
+    ],
+    "main_gap": "No charging-hardware exposure",
+    "modality": "hybrid",
+    "pay_bands": [
+      {
+        "location_metro": "washington_dc",
+        "min": 140000,
+        "max": 170000,
+        "period": "year",
+        "basis": "base"
+      }
+    ],
+    "pay_source": "posting",
+    "posted_date": "2026-10-10",
+    "posted_date_source": "posting",
+    "relocation_assistance": null,
+    "reposted": false,
+    "scores": {
+      "role_fit": {
+        "score": 77,
+        "evidence": "Hardware-adjacent software PM; pricing experiments shipped"
+      },
+      "domain": {
+        "score": 86,
+        "evidence": "Electrification, core direction"
+      }
+    },
+    "bucket": null,
+    "bucket_reason": null,
+    "category": null,
+    "relevance": null,
+    "why": null,
+    "triage_error": null,
+    "batch_id": "sample-batch",
+    "triaged_at": "2026-10-15T09:00:00+00:00",
+    "route": "board"
+  },
+  "decision": {
+    "decision": null,
+    "history": []
+  }
+}

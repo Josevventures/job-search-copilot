@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "lead_id": "fc491c9ebaff",
+  "canonical_url": "https://jobs.lever.co/quillmate/00000000-0000-4000-8000-000000000018",
+  "intake": {
+    "sources": [
+      {
+        "url": "https://jobs.lever.co/quillmate/00000000-0000-4000-8000-000000000018",
+        "kind": "posting",
+        "poster_name": null,
+        "poster_url": null,
+        "added_via": "manual",
+        "roundup_of": null,
+        "hint": null,
+        "added_at": "2026-10-15T09:00:00+00:00"
+      }
+    ],
+    "created_at": "2026-10-15T09:00:00+00:00",
+    "jd_links": [
+      "https://jobs.lever.co/quillmate/00000000-0000-4000-8000-000000000018"
+    ]
+  },
+  "triage": {
+    "triage_status": "complete",
+    "triaged_at": "2026-10-15T09:00:00+00:00",
+    "batch_id": "v1-sample",
+    "jd_url": "https://jobs.lever.co/quillmate/00000000-0000-4000-8000-000000000018",
+    "jd_read": true,
+    "company": "Quillmate",
+    "role_title": "Product Manager, Editor",
+    "location": "Remote (US)",
+    "pay": null,
+    "fit_score": "Medium",
+    "fit_rationale": "Older triage format: no sub-scores, so it waits for re-triage.",
+    "bucket": "tier2",
+    "bucket_reason": "v1 rule table",
+    "category": "product",
+    "relevance": "medium"
+  },
+  "decision": {
+    "decision": null,
+    "history": []
+  }
+}

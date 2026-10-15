@@ -1,0 +1,104 @@
+{
+  "schema_version": 2,
+  "lead_id": "45bfe17c4bdc",
+  "canonical_url": "https://jobs.lever.co/brambleworks/00000000-0000-4000-8000-000000000002",
+  "intake": {
+    "sources": [
+      {
+        "url": "https://jobs.lever.co/brambleworks/00000000-0000-4000-8000-000000000002",
+        "kind": "posting",
+        "poster_name": null,
+        "poster_url": null,
+        "added_via": "manual",
+        "roundup_of": null,
+        "hint": null,
+        "added_at": "2026-10-15T09:00:00+00:00"
+      }
+    ],
+    "created_at": "2026-10-15T09:00:00+00:00",
+    "jd_links": [
+      "https://jobs.lever.co/brambleworks/00000000-0000-4000-8000-000000000002"
+    ]
+  },
+  "triage": {
+    "triage_status": "complete",
+    "checkpoint_version": 3,
+    "company": "Brambleworks",
+    "role_title": "Product Manager, Developer Platform",
+    "location": "Remote (US) (remote)",
+    "pay": "$128,000 - $150,000",
+    "pay_type": "salary",
+    "jd_url": "https://jobs.lever.co/brambleworks/00000000-0000-4000-8000-000000000002",
+    "jd_read": true,
+    "jd_note": null,
+    "posting_status": "open",
+    "fit_score": "Medium",
+    "fit_rationale": "Shipped two developer-facing APIs; no CLI product yet. Main gap: Never owned a command-line product.",
+    "network": {
+      "contacts": [],
+      "summary": ""
+    },
+    "engage": null,
+    "airtable_match": {
+      "relation": "none",
+      "record_id": null,
+      "note": null,
+      "stage": null
+    },
+    "eligibility_note": null,
+    "alternates": [],
+    "draft_answers": null,
+    "fetch_method": "webfetch",
+    "applicant_count": 180,
+    "bonus": null,
+    "equity": true,
+    "inbound": null,
+    "job_summary": "Run the CLI and SDK roadmap for a build-tooling company",
+    "level": "mid",
+    "locations": [
+      {
+        "label": "Remote (US)",
+        "metro": "remote_us"
+      }
+    ],
+    "main_gap": "Never owned a command-line product",
+    "modality": "remote",
+    "pay_bands": [
+      {
+        "location_metro": "remote_us",
+        "min": 128000,
+        "max": 150000,
+        "period": "year",
+        "basis": "base"
+      }
+    ],
+    "pay_source": "posting",
+    "posted_date": "2026-10-09",
+    "posted_date_source": "posting",
+    "relocation_assistance": null,
+    "reposted": false,
+    "scores": {
+      "role_fit": {
+        "score": 76,
+        "evidence": "Shipped two developer-facing APIs; no CLI product yet"
+      },
+      "domain": {
+        "score": 78,
+        "evidence": "Developer tools, second tier of the direction"
+      }
+    },
+    "bucket": null,
+    "bucket_reason": null,
+    "category": null,
+    "relevance": null,
+    "why": null,
+    "triage_error": null,
+    "batch_id": "sample-batch",
+    "triaged_at": "2026-10-15T09:00:00+00:00",
+    "route": "board"
+  },
+  "decision": {
+    "decision": null,
+    "history": []
+  }
+}

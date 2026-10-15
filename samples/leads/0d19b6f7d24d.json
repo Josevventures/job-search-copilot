@@ -1,0 +1,104 @@
+{
+  "schema_version": 2,
+  "lead_id": "0d19b6f7d24d",
+  "canonical_url": "https://jobs.ashbyhq.com/tallgrasspay/00000000-0000-4000-8000-000000000006",
+  "intake": {
+    "sources": [
+      {
+        "url": "https://jobs.ashbyhq.com/tallgrasspay/00000000-0000-4000-8000-000000000006",
+        "kind": "posting",
+        "poster_name": null,
+        "poster_url": null,
+        "added_via": "manual",
+        "roundup_of": null,
+        "hint": null,
+        "added_at": "2026-10-15T09:00:00+00:00"
+      }
+    ],
+    "created_at": "2026-10-15T09:00:00+00:00",
+    "jd_links": [
+      "https://jobs.ashbyhq.com/tallgrasspay/00000000-0000-4000-8000-000000000006"
+    ]
+  },
+  "triage": {
+    "triage_status": "complete",
+    "checkpoint_version": 3,
+    "company": "Tallgrass Payments",
+    "role_title": "Product Manager, Risk",
+    "location": "Austin, TX (hybrid)",
+    "pay": "$92,000 - $118,000",
+    "pay_type": "salary",
+    "jd_url": "https://jobs.ashbyhq.com/tallgrasspay/00000000-0000-4000-8000-000000000006",
+    "jd_read": true,
+    "jd_note": null,
+    "posting_status": "open",
+    "fit_score": "Low",
+    "fit_rationale": "Ran an internal review tool; no payments work. Main gap: No payments or risk background.",
+    "network": {
+      "contacts": [],
+      "summary": ""
+    },
+    "engage": null,
+    "airtable_match": {
+      "relation": "none",
+      "record_id": null,
+      "note": null,
+      "stage": null
+    },
+    "eligibility_note": null,
+    "alternates": [],
+    "draft_answers": null,
+    "fetch_method": "api",
+    "applicant_count": 61,
+    "bonus": null,
+    "equity": true,
+    "inbound": null,
+    "job_summary": "Build the fraud-review queue for small-business payments",
+    "level": "mid",
+    "locations": [
+      {
+        "label": "Austin, TX",
+        "metro": "austin"
+      }
+    ],
+    "main_gap": "No payments or risk background",
+    "modality": "hybrid",
+    "pay_bands": [
+      {
+        "location_metro": "austin",
+        "min": 92000,
+        "max": 118000,
+        "period": "year",
+        "basis": "base"
+      }
+    ],
+    "pay_source": "posting",
+    "posted_date": "2026-10-11",
+    "posted_date_source": "posting",
+    "relocation_assistance": null,
+    "reposted": false,
+    "scores": {
+      "role_fit": {
+        "score": 74,
+        "evidence": "Ran an internal review tool; no payments work"
+      },
+      "domain": {
+        "score": 45,
+        "evidence": "Fintech operations, outside the direction"
+      }
+    },
+    "bucket": null,
+    "bucket_reason": null,
+    "category": null,
+    "relevance": null,
+    "why": null,
+    "triage_error": null,
+    "batch_id": "sample-batch",
+    "triaged_at": "2026-10-15T09:00:00+00:00",
+    "route": "board"
+  },
+  "decision": {
+    "decision": null,
+    "history": []
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "schema_version": 2,
+  "lead_id": "2f426fe55bad",
+  "canonical_url": "https://jobs.ashbyhq.com/driftwood/00000000-0000-4000-8000-000000000013",
+  "intake": {
+    "sources": [
+      {
+        "url": "https://jobs.ashbyhq.com/driftwood/00000000-0000-4000-8000-000000000013",
+        "kind": "posting",
+        "poster_name": null,
+        "poster_url": null,
+        "added_via": "slack",
+        "roundup_of": null,
+        "hint": null,
+        "added_at": "2026-10-15T09:00:00+00:00"
+      }
+    ],
+    "created_at": "2026-10-15T09:00:00+00:00",
+    "jd_links": [
+      "https://jobs.ashbyhq.com/driftwood/00000000-0000-4000-8000-000000000013"
+    ]
+  },
+  "triage": {
+    "triage_status": "complete",
+    "checkpoint_version": 3,
+    "company": "Driftwood Analytics",
+    "role_title": "Product Manager (Contract, 6 months)",
+    "location": "Remote (US) (remote)",
+    "pay": "$70/hr - $85/hr",
+    "pay_type": "salary",
+    "jd_url": "https://jobs.ashbyhq.com/driftwood/00000000-0000-4000-8000-000000000013",
+    "jd_read": true,
+    "jd_note": null,
+    "posting_status": "open",
+    "fit_score": "Medium",
+    "fit_rationale": "Reporting products are a strength. Main gap: Contract role; no benefits stated.",
+    "network": {
+      "contacts": [],
+      "summary": ""
+    },
+    "engage": null,
+    "airtable_match": {
+      "relation": "none",
+      "record_id": null,
+      "note": null,
+      "stage": null
+    },
+    "eligibility_note": null,
+    "alternates": [],
+    "draft_answers": null,
+    "fetch_method": "api",
+    "applicant_count": 75,
+    "bonus": null,
+    "equity": null,
+    "inbound": null,
+    "job_summary": "Scope a reporting module for a supply-chain analytics tool",
+    "level": "mid",
+    "locations": [
+      {
+        "label": "Remote (US)",
+        "metro": "remote_us"
+      }
+    ],
+    "main_gap": "Contract role; no benefits stated",
+    "modality": "remote",
+    "pay_bands": [
+      {
+        "location_metro": "remote_us",
+        "min": 70,
+        "max": 85,
+        "period": "hour",
+        "basis": "base"
+      }
+    ],
+    "pay_source": "posting",
+    "posted_date": "2026-10-08",
+    "posted_date_source": "posting",
+    "relocation_assistance": null,
+    "reposted": false,
+    "scores": {
+      "role_fit": {
+        "score": 82,
+        "evidence": "Reporting products are a strength"
+      },
+      "domain": {
+        "score": 55,
+        "evidence": "Supply-chain analytics, adjacent"
+      }
+    },
+    "bucket": null,
+    "bucket_reason": null,
+    "category": null,
+    "relevance": null,
+    "why": null,
+    "triage_error": null,
+    "batch_id": "sample-batch",
+    "triaged_at": "2026-10-15T09:00:00+00:00",
+    "route": "board"
+  },
+  "decision": {
+    "decision": null,
+    "history": []
+  }
+}

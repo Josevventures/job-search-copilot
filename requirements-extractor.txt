@@ -1,0 +1,2 @@
+# Optional form_extractor module. After installing: python -m playwright install chromium
+playwright>=1.47

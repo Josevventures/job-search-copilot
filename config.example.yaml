@@ -1,0 +1,62 @@
+# job-search-copilot configuration.
+#
+# Copy this file to config.yaml and edit the copy (config.yaml is gitignored). Without a config.yaml the
+# tools read this example file, so the core runs out of the box.
+#
+# The core (lead files, ranking engine, the board, link/file intake) needs nothing below except data_dir.
+# Every optional module is off by default. Turning one on is the only switch; its setup is in docs/SETUP.md.
+
+# Where your data lives: lead files, the skip log, prep packs, form captures, run logs. Relative paths are
+# relative to the repo root. Gitignored.
+data_dir: data
+
+board:
+  host: 127.0.0.1
+  port: 8420
+
+modules:
+  # 1. Slack intake: post job links in one Slack channel; a scheduled run ingests them, triages them (needs
+  #    ai_triage) and replies in each message's thread.
+  slack_intake:
+    enabled: false
+    channel_id: ""            # the channel you drop links in (C0...)
+    user_id: ""               # your Slack user id (U0...); only your top-level messages count as drops
+    timezone: America/New_York
+    quiet_hours: ["22:00", "07:00"]   # replies wait until quiet hours end
+    max_leads_per_run: 20     # leads past the cap are carried to the next run
+    # The bot token is read from the SLACK_BOT_TOKEN environment variable or from .env in the repo root.
+
+  # 2. AI triage: Claude Code subagents read each posting and fill in the facts plus two judgment scores.
+  #    Runs inside Claude Code (interactive /job-apply-fleet, or `claude -p` for unattended Slack runs).
+  ai_triage:
+    enabled: false
+    model: sonnet             # Claude Code model alias for the unattended run and the triage subagents
+    preferences_file: skills/job-apply-fleet/preferences.md   # copy preferences.example.md and edit it
+
+  # 3. Form extractor: reads a Greenhouse / Lever / Ashby application form into a JSON prep file.
+  #    Read-only by construction: it never types, uploads, submits or signs in.
+  form_extractor:
+    enabled: false
+    python: ""                # interpreter that has Playwright installed; empty = the one running the board
+
+  # 4. Claude Code skills: /job-apply-fleet (batch triage) and /job-apply (one application, prep packs,
+  #    logging). Turning this on enables the board's Applied / Need help / Prep buttons, which dispatch
+  #    /job-apply headlessly through the `claude` CLI.
+  job_apply:
+    enabled: false
+    writing_samples_dir: data/writing-samples   # a folder of your own writing; drafts are calibrated on it
+    profile_file: data/profile.md               # facts about you the drafter may read (work authorization etc.)
+    contacts_dir: ""                            # optional: one markdown file per contact, for the network check
+
+  # 5. Airtable as an optional store for submitted applications (and, optionally, contacts). Local files
+  #    stay the default store either way. Base schema: docs/SETUP.md.
+  airtable:
+    enabled: false
+    base_id: ""
+    applications_table: ""
+    contacts_table: ""
+    # Field ids (fld...) or field names, read when deduping new leads against applications you already logged.
+    fields:
+      role_url: Role URL
+      company: Company
+      role_title: Role Title

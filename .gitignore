@@ -1,0 +1,19 @@
+# your data and settings (never committed)
+data/
+data-demo/
+config.yaml
+.env
+skills/job-apply-fleet/preferences.md
+# Claude Code: where you install the skills locally
+.claude/
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+node_modules/
+.DS_Store

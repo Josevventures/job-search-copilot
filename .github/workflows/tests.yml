@@ -20,4 +20,11 @@ jobs:
       # Light install: the core requirements plus pytest/httpx. No Playwright, so the extractor's
       # browser tests skip themselves with a reason; everything else runs.
       - run: pip install -r requirements-dev.txt
-      - run: python scripts/run_tests.py
+      - name: Run tests
+        timeout-minutes: 12
+        shell: bash
+        run: python -u scripts/run_tests.py --verbose 2>&1 | tee test-output.txt
+      - name: Last test output
+        if: always()
+        shell: bash
+        run: tail -n 150 test-output.txt || true

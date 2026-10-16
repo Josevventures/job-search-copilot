@@ -984,6 +984,8 @@ def test_run_extractor_bounds_the_post_kill_wait(tmp_path, monkeypatch):
             pass
     monkeypatch.setattr(jobs.subprocess, "Popen", HungPopen)
     monkeypatch.setattr(jobs.subprocess, "run", lambda *a, **k: None)
+    if hasattr(jobs.os, "killpg"):  # the fake pid must never reach a real kill on POSIX
+        monkeypatch.setattr(jobs.os, "killpg", lambda pgid, sig: None)
     with pytest.raises(RuntimeError, match="timed out after 2 s"):
         jobs._run_extractor("https://jobs.example.com/a", tmp_path / "f.json", 2, argv_prefix=["x"])
     assert calls == [2, 10]

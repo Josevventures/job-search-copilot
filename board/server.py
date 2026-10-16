@@ -28,13 +28,17 @@ WEB = BOARD / "web"
 JOBS_PAGE, JOBS_JS, JOBS_SCORING_JS = WEB / "jobs.html", WEB / "jobs.js", WEB / "jobs_scoring.js"
 
 
-def build(leads_dir: Path | None = None, config_path: Path | None = None, dispatch_enabled: bool | None = None):
-    """(JobsService, ConfigStore) for this process. Arguments override config.yaml (tests, a demo data dir)."""
+def build(leads_dir: Path | None = None, config_path: Path | None = None, dispatch_enabled: bool | None = None,
+          demo: bool | None = None):
+    """(JobsService, ConfigStore) for this process. Arguments override config.yaml (tests, a demo data dir).
+    demo (default: JSC_DEMO=1, set by `python -m copilot demo`) simulates Applied and Prep; see board/demo.py."""
     store = jobs_scoring_config.ConfigStore(Path(config_path) if config_path else config.scoring_config_path())
     if dispatch_enabled is None:
         dispatch_enabled = config.enabled("job_apply")
+    if demo is None:
+        demo = os.environ.get("JSC_DEMO") == "1"
     svc = jobs_mod.JobsService(jobs_mod.REPO_ROOT, leads_dir=leads_dir, config_store=store,
-                               dispatch_enabled=dispatch_enabled)
+                               dispatch_enabled=dispatch_enabled, demo=demo)
     return svc, store
 
 
@@ -87,10 +91,11 @@ def prep_file(path: str):
         raise HTTPException(status_code=404, detail="not found")
     if not (repo_rel.is_relative_to(base) and repo_rel.suffix == ".md" and repo_rel.is_file()):
         raise HTTPException(status_code=404, detail="not found")
-    return Response(repo_rel.read_bytes(), media_type="text/markdown; charset=utf-8", headers=_NO_STORE)
+    # text/plain so every browser shows the pack instead of downloading it
+    return Response(repo_rel.read_bytes(), media_type="text/plain; charset=utf-8", headers=_NO_STORE)
 
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "modules": {m: config.enabled(m) for m in config.MODULES},
+    return {"ok": True, "demo": JOBS.demo, "modules": {m: config.enabled(m) for m in config.MODULES},
             "leads_dir": str(JOBS.store.base), "pid": os.getpid()}

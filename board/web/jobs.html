@@ -41,6 +41,15 @@
   .chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
   .search { width: 100%; min-height: var(--tap); padding: 0 12px; background: var(--bg-panel-alt); border: 1px solid var(--border-soft); border-radius: var(--radius); color: var(--text); font: inherit; font-size: 16px; }
 
+  .modules-panel { margin: 12px 16px 0; border: 1px solid var(--border-soft); border-radius: var(--radius); background: var(--bg-panel); }
+  .modules-panel summary { min-height: var(--tap); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 12px; cursor: pointer; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+  .modules-panel .mod-note { margin: 0 12px 8px; padding: 6px 10px; border: 1px solid var(--amber-dim); color: var(--amber); font-size: 13px; border-radius: var(--radius); }
+  .mod-list { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 0 12px 12px; }
+  .mod { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: baseline; font-size: 13px; }
+  .modules-panel .pill { font-family: var(--font-mono); letter-spacing: 0; text-transform: none; font-size: 11px; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--border-soft); color: var(--text-secondary); text-align: center; min-width: 38px; }
+  .modules-panel .pill.on { color: var(--green); border-color: var(--green); }
+  .mod .adds { grid-column: 2; color: var(--text-secondary); overflow-wrap: anywhere; }
+  @media (min-width: 768px) { .modules-panel { max-width: 1200px; margin: 12px auto 0; } .mod-list { grid-template-columns: 1fr 1fr; } }
   .error-banner { margin: 12px 16px 0; padding: 10px 12px; border: 1px solid var(--red); background: var(--red-dim); color: var(--red); border-radius: var(--radius); }
   main { padding: 4px 16px 16px; }
   .section h2 { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.16em; color: var(--accent); margin: 18px 0 8px; text-transform: uppercase; }
@@ -139,6 +148,7 @@
     <input class="search" id="search" type="search" placeholder="Search company or role" autocomplete="off" aria-label="Search company or role">
   </div>
 </header>
+<details class="modules-panel" id="modules-panel" open hidden></details>
 <div class="error-banner" id="error" role="alert" hidden></div>
 <main id="sections" aria-live="polite"></main>
 
@@ -209,7 +219,7 @@
     lastRefreshAt: -1e9,
     cards: new Map(), chipsSig: '', sectionsSig: '', undoSig: '', undoNodes: new Map(),
     config: JSON.parse(JSON.stringify(R.DEFAULT_CONFIG)), draft: null, usingDefaults: true, configLoaded: false,
-    leadsDir: null, dispatchEnabled: true,
+    leadsDir: null, dispatchEnabled: true, demo: false,
     ranked: [], placed: new Map(), rankPending: false, collapsed: new Set(['low']) };
   state.draft = L.draftFromConfig(state.config);
   const $ = (id) => document.getElementById(id);
@@ -267,6 +277,7 @@
       if (issued > state.floor) state.leads = L.stampLeads(data.leads || [], now());
       if (data.leads_dir) state.leadsDir = data.leads_dir;
       if (typeof data.dispatch_enabled === 'boolean') state.dispatchEnabled = data.dispatch_enabled;
+      if (typeof data.demo === 'boolean') state.demo = data.demo;
       $('error').hidden = true;
     } catch (e) {
       showError('Could not load leads: ' + e.message);
@@ -334,7 +345,7 @@
   function leadSig(lead, r) {
     const { undo_remaining_s, _receivedAt, ...rest } = lead;
     return JSON.stringify(rest) + (state.busy.has(lead.lead_id) ? '|busy' : '') + (undo_remaining_s == null ? '|n' : '|u')
-      + '|' + (r ? r.band + r.overridden + r.marked : '') + '|' + settingsDirty() + '|' + state.dispatchEnabled;
+      + '|' + (r ? r.band + r.overridden + r.marked : '') + '|' + settingsDirty() + '|' + state.dispatchEnabled + state.demo;
   }
   const placedOf = (it) => (it && it.score ? it : null);
   const shown = (lead) => L.shownFor(state.placed.get(lead.lead_id) || null, settingsDirty());
@@ -482,7 +493,7 @@
     const st = L.statusLine(lead, L.remainingSeconds(lead, now()));
     if (st) c.appendChild(statusEl(lead, st));
 
-    const acts = L.actionsFor(lead, ranked, { settingsDirty: settingsDirty(), dispatchEnabled: state.dispatchEnabled });
+    const acts = L.actionsFor(lead, ranked, { settingsDirty: settingsDirty(), dispatchEnabled: state.dispatchEnabled, demo: state.demo });
     if (acts.length) {
       const row = el('div', 'actions');
       let hint = null;
@@ -714,9 +725,36 @@
   window.addEventListener('focus', refreshIfStale);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshIfStale(); });
   setInterval(tick, 1000);
+  // ---- modules panel ------------------------------------------------------------
+  async function loadModules() {
+    let health = null;
+    try { health = await api('GET', '/api/health'); } catch (_) { return; }
+    const p = L.modulesPanel(health);
+    const box = $('modules-panel');
+    box.replaceChildren();
+    const sum = el('summary', null, 'Modules');
+    p.items.forEach((m) => { const pill = el('span', 'pill' + (m.enabled ? ' on' : ''), m.enabled ? 'on' : 'off'); pill.title = m.label; sum.appendChild(pill); });
+    box.appendChild(sum);
+    if (p.note) box.appendChild(el('div', 'mod-note', p.note));
+    const list = el('div', 'mod-list');
+    p.items.forEach((m) => {
+      const row = el('div', 'mod');
+      row.appendChild(el('span', 'pill' + (m.enabled ? ' on' : ''), m.enabled ? 'on' : 'off'));
+      const name = el('span');
+      name.appendChild(extLink(m.href, m.label));
+      row.appendChild(name);
+      row.appendChild(el('span', 'adds', m.adds));
+      list.appendChild(row);
+    });
+    box.appendChild(list);
+    if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches && !p.demo) box.open = false;
+    box.hidden = false;
+  }
+
   renderDrawer();
   refresh();
   loadConfig();
+  loadModules();
 })();
 </script>
 </body>

@@ -79,6 +79,7 @@ def _seed_demo(target: Path) -> int:
 def cmd_demo(a) -> int:
     n = _seed_demo(DEMO_DIR)
     os.environ["JSC_DATA_DIR"] = str(DEMO_DIR)
+    os.environ["JSC_DEMO"] = "1"   # board/server.py: Applied and Prep are simulated, see board/demo.py
     print(f"Seeded {n} invented leads into {DEMO_DIR.name}/ (recreated on every `demo`).")
     cfg = config.load()
     return _serve(a.host or cfg["board"]["host"], a.port or cfg["board"]["port"], not a.no_browser)

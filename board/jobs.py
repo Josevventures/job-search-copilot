@@ -352,9 +352,11 @@ class JobsService:
                  create_job=_dispatch_create, get_job=_dispatch_get, grant_once=_dispatch_grant_once,
                  undo_window_s: int = UNDO_WINDOW_S, run_extractor=_run_extractor, spawn=_spawn_thread,
                  prepare_lockdown=prep_lockdown.prepare, inbox_path: Path | None = None, config_store=None,
-                 dispatch_enabled: bool = True):
+                 dispatch_enabled: bool = True, demo: bool = False):
         self.config_store = config_store
         self.dispatch_enabled = dispatch_enabled  # server.py passes config modules.job_apply.enabled
+        # Demo mode (python -m copilot demo): Applied and Prep run locally through board/demo.py, never dispatch.
+        self.demo = demo
         self.repo_root = Path(repo_root)
         self.inbox_path = Path(inbox_path) if inbox_path else self.repo_root / INBOX_REL
         self.inbox_state_path = self.inbox_path.with_name(INBOX_STATE_NAME)
@@ -419,7 +421,7 @@ class JobsService:
             except Exception as e:  # the inbox never breaks the list
                 print(f"[jobs] terminal inbox skipped: {e!r}", flush=True)
             return {"server_now": _iso(now), "undo_window_s": self.undo_window_s,
-                    "leads_dir": self._leads_ref(), "dispatch_enabled": self.dispatch_enabled,
+                    "leads_dir": self._leads_ref(), "dispatch_enabled": self.dispatch_enabled, "demo": self.demo,
                     "leads": [self.view(l, now) for l in self._all()]}
 
     def _leads_ref(self) -> str:
@@ -523,7 +525,7 @@ class JobsService:
                       shown: dict | None = None) -> dict:
         if action not in ACTIONS:
             raise JobsError(422, f"unknown action {action!r}; expected one of {', '.join(ACTIONS)}")
-        if action in JOB_ACTIONS and not self.dispatch_enabled:
+        if action in JOB_ACTIONS and not (self.dispatch_enabled or self.demo):
             raise JobsError(503, DISPATCH_OFF)
         if action == "skip" and reason not in SKIP_REASONS:
             raise JobsError(422, f"skip needs a reason chip: {', '.join(SKIP_REASONS)}")
@@ -722,9 +724,29 @@ class JobsService:
         # and reuses that Airtable record (SKILL.md --from-terminal).
         js = (lead.get("decision") or {}).get("job_status") or {}
         from_terminal = js.get("kind") == "terminal" and js.get("state") == "in_progress"
+        if self.demo:
+            return self._demo_applied(lead, pending, now)
         self._exec_dispatch(lead, pending, now, "applied", "applied", from_terminal)
 
+    def _demo_applied(self, lead, pending, now):
+        import demo
+        rec = demo.write_local_record(self.store.base.parent, lead, now)
+        self._finish(lead, pending, {"decision": "applied", "airtable_record_id": rec, "job_status": {
+            "kind": "applied", "state": "done", "record_id": rec, "demo": True, "updated_at": _iso(now)}})
+
+    def _demo_prep(self, lead, pending, now):
+        import demo
+        path = demo.write_prep_pack(self.store.base.parent / "prep", lead, now)
+        try:
+            ref = path.resolve().relative_to(self.repo_root.resolve()).as_posix()
+        except ValueError:
+            ref = path.resolve().as_posix()
+        self._finish(lead, pending, {"decision": "needs_help", "prep_file": ref, "job_status": {
+            "kind": "prep", "state": "done", "prep_file": ref, "demo": True, "updated_at": _iso(now)}})
+
     def _exec_prep(self, lead, pending, now):
+        if self.demo:
+            return self._demo_prep(lead, pending, now)
         lid = lead["lead_id"]
         js = self._extracting(lid, now)
         self._finish(lead, pending, {"decision": "needs_help", "job_status": js})  # `extracting` is on disk first

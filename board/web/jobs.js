@@ -145,9 +145,10 @@
   }
 
   // opts.dispatchEnabled === false (job_apply module off): no Applied / Need help, which need the claude CLI.
+  // opts.demo (python -m copilot demo): they are shown anyway, and the server simulates them (board/demo.py).
   function actionsFor(lead, placed, opts) {
     const dirty = !!(opts && opts.settingsDirty);
-    const dispatch = !(opts && opts.dispatchEnabled === false);
+    const dispatch = !(opts && opts.dispatchEnabled === false) || !!(opts && opts.demo);
     const s = sectionOf(lead);
     if (!s || s === 'applied' || decisionOf(lead).pending || isActive(jobOf(lead))) return [];
     if (s === 'airtable') return [{ action: 'skip', label: 'Skip' }];
@@ -386,7 +387,31 @@
     return out;
   }
 
+  // Modules panel: the five optional modules, their switch state (GET /api/health) and where to set each up.
+  const SETUP_URL = 'https://github.com/Josevventures/job-search-copilot/blob/main/docs/SETUP.md';
+  const MODULES = [
+    { key: 'slack_intake', label: 'Slack intake', anchor: 'module-slack-intake',
+      adds: 'Drop links in a Slack channel; a daily run triages them and replies in the thread.' },
+    { key: 'ai_triage', label: 'AI triage', anchor: 'module-ai-triage',
+      adds: 'Claude Code subagents read each posting and fill in the facts and the two judgment scores.' },
+    { key: 'form_extractor', label: 'Form extractor', anchor: 'module-form-extractor',
+      adds: 'Reads the application form into a prep file for the drafter. Never submits.' },
+    { key: 'job_apply', label: 'Job apply', anchor: 'module-claude-code-skills-job_apply',
+      adds: 'Applied and Need help run /job-apply: prep packs and application logging.' },
+    { key: 'airtable', label: 'Airtable', anchor: 'module-airtable',
+      adds: 'Logs applications to Airtable and dedupes new leads against it (local files otherwise).' },
+  ];
+  const DEMO_NOTE = 'Demo mode: buttons are simulated; turn modules on in config.yaml to run them for real.';
+  function modulesPanel(health) {
+    const on = (health && health.modules) || {};
+    const demo = !!(health && health.demo);
+    return { demo, note: demo ? DEMO_NOTE : null,
+      items: MODULES.map((m) => ({ key: m.key, label: m.label, adds: m.adds, enabled: on[m.key] === true,
+        href: SETUP_URL + '#' + m.anchor })) };
+  }
+
   const api = {
+    MODULES, DEMO_NOTE, modulesPanel,
     SECTIONS, DEFAULT_SECTIONS, SKIP_REASONS, FAST_POLL_MS, SLOW_POLL_MS, MAX_UNDO_BARS,
     sectionOf, overrideOf, sectionLabel, warmCurrentContact, badgesFor, networkLine, safeHref, postingLink,
     engageLink, terminalCommand, actionsFor, MOVE_BLOCKED_HINT, bandHeaders, matchesQuery, countSections, groupLeads,

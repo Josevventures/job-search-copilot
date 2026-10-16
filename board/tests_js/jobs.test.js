@@ -390,3 +390,23 @@ test('cardModel: carries the user\'s Slack note on ranked and unranked cards', (
   assert.equal(L.cardModel({ ...lead(), source_note: 'x' }, null).yourNote, 'x');
   assert.equal(L.cardModel(lead(), null).yourNote, '');
 });
+
+test('actionsFor: demo mode shows Applied and Need help even when dispatch is off', () => {
+  const off = L.actionsFor(lead(), null, { dispatchEnabled: false }).map((a) => a.action);
+  assert.deepEqual(off, ['skip']);
+  const demo = L.actionsFor(lead(), null, { dispatchEnabled: false, demo: true }).map((a) => a.action);
+  assert.deepEqual(demo, ['applied', 'help', 'skip']);
+});
+
+test('modulesPanel: all five modules with their state, setup links, and the demo note only in demo mode', () => {
+  const p = L.modulesPanel({ demo: true, modules: { slack_intake: false, ai_triage: true, form_extractor: false,
+    job_apply: false, airtable: false } });
+  assert.deepEqual(p.items.map((m) => m.key), ['slack_intake', 'ai_triage', 'form_extractor', 'job_apply', 'airtable']);
+  assert.deepEqual(p.items.map((m) => m.enabled), [false, true, false, false, false]);
+  p.items.forEach((m) => { assert.match(m.href, /docs\/SETUP\.md#module-/); assert.ok(m.adds.length > 20); });
+  assert.equal(p.demo, true); assert.equal(p.note, L.DEMO_NOTE);
+  assert.match(p.note, /^Demo mode: buttons are simulated; turn modules on in config\.yaml/);
+  const serve = L.modulesPanel({ demo: false, modules: {} });
+  assert.equal(serve.note, null);
+  assert.ok(serve.items.every((m) => m.enabled === false));
+});

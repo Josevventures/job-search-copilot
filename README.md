@@ -127,8 +127,11 @@ pip install -r requirements.txt
 python -m copilot demo
 ```
 
-`demo` copies 19 invented leads into a scratch folder and opens the board at `http://127.0.0.1:8420/jobs`. Your own
-data goes in `data/` (gitignored):
+`demo` copies 19 invented leads into a scratch folder and opens the board at `http://127.0.0.1:8420/jobs`. The demo
+shows every step: Applied writes a local application record and Need help opens a sample prep pack, both simulated
+without Claude Code, and the **Modules** panel at the top shows which modules are on and links to each one's setup.
+
+Your own data goes in `data/` (gitignored):
 
 ```bash
 cp config.example.yaml config.yaml
@@ -153,6 +156,10 @@ Ranking settings on a phone: presets, six weights, the pay floor and the band th
 slider moves.
 
 ![Ranking settings on a phone](docs/img/ranking-settings-phone.png)
+
+The demo's sample prep pack for one card (in demo mode it is generated from the lead's invented data):
+
+![A demo prep pack](docs/img/prep-pack-demo.png)
 
 A Slack thread reply after the nightly run (format from `lib/slack_replies.py`; the content is invented):
 

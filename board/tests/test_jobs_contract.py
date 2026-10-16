@@ -9,6 +9,8 @@ import re
 import sys
 from pathlib import Path
 
+import pytest
+
 BACKEND = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND))
 
@@ -99,12 +101,44 @@ def test_phase4_says_reuse_never_changes_the_application_date():
     assert "never changes its Application Date" in phase4
 
 
-def test_local_record_line_and_marker_are_accepted_by_jobs_py():
+def _record_id_mod():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("record_id", jobs.REPO_ROOT / "scripts" / "record_id.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_local_record_uuid_is_accepted_as_marker_and_inbox_id():
     """Airtable off: the skill's local record id is a valid marker value and a valid inbox record id."""
-    assert jobs.parse_airtable_record("AIRTABLE_RECORD: local-0123456789ab") == "local-0123456789ab"
-    assert jobs.parse_airtable_record("AIRTABLE_RECORD: local-XYZ") is None
-    line = {"lead_id": "0123456789ab", "airtable_record_id": "local-0123456789ab",
+    rid = _record_id_mod().local_record_id(lead_id="0123456789ab")
+    assert jobs.parse_airtable_record(f"AIRTABLE_RECORD: {rid}") == rid
+    line = {"lead_id": "0123456789ab", "airtable_record_id": rid,
             "completed_at": "2026-10-03T12:00:00+00:00", "source": jobs.INBOX_SOURCE}
     assert jobs.check_inbox_line(line) is None
     m = re.search(r'^(\{"record_id": .*\})$', SKILL, re.M)
-    assert m and json.loads(m.group(1).replace("<12 hex>", "0123456789ab"))["record_id"].startswith("local-")
+    assert m and jobs.RECORD_ID_RE.fullmatch(json.loads(m.group(1).replace("<uuid>", rid))["record_id"])
+    assert "scripts/record_id.py --lead <lead_id>" in SKILL
+
+
+@pytest.mark.parametrize("bad", ["local-0123456789ab", "local-XYZ", "0123456789ab",
+                                 "0D7E1A9B-2C3D-5E4F-8A9B-0C1D2E3F4A5B",        # uppercase is not canonical
+                                 "0d7e1a9b2c3d5e4f8a9b0c1d2e3f4a5b",            # no hyphens
+                                 "0d7e1a9b-2c3d-5e4f-8a9b-0c1d2e3f4a5",         # one digit short
+                                 "{0d7e1a9b-2c3d-5e4f-8a9b-0c1d2e3f4a5b}"])
+def test_local_prefix_and_malformed_uuids_are_rejected(bad):
+    assert jobs.parse_airtable_record(f"AIRTABLE_RECORD: {bad}") is None
+    line = {"lead_id": "0123456789ab", "airtable_record_id": bad,
+            "completed_at": "2026-10-03T12:00:00+00:00", "source": jobs.INBOX_SOURCE}
+    assert jobs.check_inbox_line(line)
+
+
+def test_the_same_application_always_gets_the_same_uuid5():
+    import uuid
+    rid = _record_id_mod()
+    a = rid.local_record_id(lead_id="0123456789ab")
+    assert a == rid.local_record_id(lead_id="0123456789ab") and uuid.UUID(a).version == 5
+    assert a != rid.local_record_id(lead_id="0123456789ac")
+    assert rid.local_record_id(company="Acme", role="PM") == rid.local_record_id(company="ACME ", role="pm")
+    with pytest.raises(ValueError):
+        rid.local_record_id(company="Acme")

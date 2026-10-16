@@ -203,7 +203,7 @@ buttons are hidden; the board still ranks, skips, moves and undoes.
 confirmation and logging. Headless runs end with one marker line the board parses:
 
 - `PREP_FILE: data/prep/<file>.md` — must resolve inside the prep folder and exist; a `.draft.md` is never accepted.
-- `AIRTABLE_RECORD: rec<14>` or `AIRTABLE_RECORD: local-<12 hex>` — the record the application was logged as.
+- `AIRTABLE_RECORD: rec<14>` or `AIRTABLE_RECORD: <uuid>` (a local record) — the record the application was logged as.
 
 An interactive run started from a card (`--lead`) appends one line to `data/terminal_completions.jsonl` after
 logging; the board applies it on its next list load if, and only if, the lead is in terminal progress, nothing is

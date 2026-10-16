@@ -11,7 +11,7 @@ This skill runs a 5-phase workflow: intake → **company network check** → que
 
 **Configuration** comes from `config.yaml` in the repo root (or `config.example.yaml`): the data dir (`data/` by default), `modules.job_apply` (`writing_samples_dir`, `profile_file`, optional `contacts_dir`) and `modules.airtable` (`enabled`, `base_id`, `applications_table`, `contacts_table`). Read it once at the start. Every path below assumes the defaults; use the configured ones.
 
-**Where the application is logged.** Airtable module on → the applications table (Phase 4, "Airtable"). Off → one line in `data/applications.jsonl` (Phase 4, "Local"). Either way the record id is what the board's marker line carries: `rec` + 14 characters for Airtable, `local-` + 12 hex characters for a local record.
+**Where the application is logged.** Airtable module on → the applications table (Phase 4, "Airtable"). Off → one line in `data/applications.jsonl` (Phase 4, "Local"). Either way the record id is what the board's marker line carries: `rec` + 14 characters for Airtable, a standard lowercase UUID for a local record.
 
 ---
 
@@ -96,7 +96,7 @@ PREP_FILE: data/prep/acme-2026-10-01.md
   3. **Phase 5.5**, limited in this mode to the lead's `engage` person plus contacts whose network status is current AND warmth is warm (not every network contact).
   4. **Phase 5.75** (verify).
 - **Idempotent reruns.** This mode can run twice for the same lead. Before Phase 3.5 and Phase 5.5, check whether this lead was already processed today and SKIP the step if so: the application-answers file `data/applications/[company-slug]-application-answers-[YYYY-MM-DD].md` already exists (skip Phase 3.5); the contact's file already has today's note for this application (skip that contact). The record itself stays deduped by the Phase 4 rule above.
-- No questions to the user. Final line (the real id: `rec` + 14 characters, or `local-<lead_id>`):
+- No questions to the user. Final line (the real id: `rec` + 14 characters, or the local record's UUID):
 
 AIRTABLE_RECORD: recXXXXXXXXXXXXXX
 
@@ -126,7 +126,7 @@ The board's **Copy terminal command** copies `/job-apply <jd_url> --lead data/le
 
 {"lead_id": "<lead_id>", "airtable_record_id": "<rec id>", "completed_at": "<ISO UTC>", "source": "terminal-job-apply"}
 
-  `airtable_record_id` holds the record id whichever store wrote it (`rec…` or `local-…`). Write it with the Bash tool (the single quotes keep the JSON intact), never with a raw `>>`:
+  `airtable_record_id` holds the record id whichever store wrote it (`rec…` or a UUID). Write it with the Bash tool (the single quotes keep the JSON intact), never with a raw `>>`:
   ```
   python scripts/append_once.py data/terminal_completions.jsonl --marker '"lead_id": "<lead_id>", "airtable_record_id": "<rec id>"' --text '{"lead_id": "<lead_id>", "airtable_record_id": "<rec id>", "completed_at": "<ISO UTC>", "source": "terminal-job-apply"}'
   ```
@@ -270,9 +270,9 @@ Search for an existing record by company name + role title first (no duplicates)
 
 ### Local (when the Airtable module is off)
 
-Append one JSON line to `data/applications.jsonl` with `scripts/append_once.py`, marker `"record_id": "<id>"`, where `<id>` is `local-<lead_id>` when a lead file is known, else `local-` + the first 12 hex characters of the SHA-256 of `<company>|<role>` (lowercased):
+Append one JSON line to `data/applications.jsonl` with `scripts/append_once.py`, marker `"record_id": "<id>"`, where `<id>` comes from `python scripts/record_id.py --lead <lead_id>` when a lead file is known, else `python scripts/record_id.py --company "<company>" --role "<role>"`. It is a UUID5, so a re-run for the same application gets the same id and `append_once` skips the duplicate:
 
-{"record_id": "local-<12 hex>", "company": "<company>", "role_title": "<role>", "role_url": "<url>", "location": "<location>", "application_date": "<YYYY-MM-DD>", "status": "Applied", "interview_chances": "<High|Medium|Low>", "rationale": "<2-3 sentences>"}
+{"record_id": "<uuid>", "company": "<company>", "role_title": "<role>", "role_url": "<url>", "location": "<location>", "application_date": "<YYYY-MM-DD>", "status": "Applied", "interview_chances": "<High|Medium|Low>", "rationale": "<2-3 sentences>"}
 
 The "existing record" search above is a search of this file for the same company + role.
 

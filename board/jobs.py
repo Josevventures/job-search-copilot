@@ -104,9 +104,9 @@ NOT_CONFIRMED_ERROR = "dispatch not confirmed — check Airtable / Prep before r
 RESTART_ERROR = "dashboard restarted during job — check Airtable / Prep before retrying"
 # Marker lines (spec §4/§6). Line-anchored; tolerant of the backticks/bold a model adds; last match wins.
 # A record id is an Airtable record (rec + 14) or, when the Airtable module is off, a local application record
-# (local- + the lead id) that /job-apply writes to data/applications.jsonl. The local form is this extraction's
-# only addition to the marker contract; the private system logs to Airtable only.
-RECORD_ID = r"rec[A-Za-z0-9]{14}|local-[0-9a-f]{12}"
+# (a canonical lowercase UUID, uuid5 from scripts/record_id.py) that /job-apply writes to data/applications.jsonl.
+# The local form is this extraction's only addition to the marker contract; the private system logs to Airtable only.
+RECORD_ID = r"rec[A-Za-z0-9]{14}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 AIRTABLE_RE = re.compile(r"^[\s`*>_-]*AIRTABLE_RECORD:[\s`*]*(" + RECORD_ID + r")[\s`*_]*$", re.M)
 PREP_RE = re.compile(r"^[\s`*>_-]*PREP_FILE:[\s`*]*([^`*\r\n]+?)[\s`*_]*$", re.M)
 FROM_TERMINAL_FLAG = "--from-terminal"
@@ -337,7 +337,7 @@ def check_inbox_line(line) -> str | None:
         return f"lead_id is not a 12-hex lead id: {line.get('lead_id')!r}"
     rec = line.get("airtable_record_id")
     if not (isinstance(rec, str) and RECORD_ID_RE.fullmatch(rec)):
-        return f"airtable_record_id is not rec + 14 characters or local- + 12 hex: {rec!r}"
+        return f"airtable_record_id is not rec + 14 characters or a lowercase UUID: {rec!r}"
     if line.get("source") != INBOX_SOURCE:
         return f"source is not {INBOX_SOURCE!r}: {line.get('source')!r}"
     return None

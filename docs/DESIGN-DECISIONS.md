@@ -234,7 +234,7 @@ Not decisions of the private system; choices made to publish it.
 - **Home metros became config.** The private scorer had two home metros as a constant. Here they are
   `home_metros` in the scoring config, and a home metro is never also scored as a hub.
 - **A local record for applications.** The private `/job-apply` logs to Airtable only. Here Airtable is optional,
-  so the skill can log a line to `data/applications.jsonl` and the board accepts `local-<12 hex>` as a record id.
+  so the skill can log a line to `data/applications.jsonl` and the board accepts a standard UUID as a record id.
   That marker form is new.
 - **Removed:** the heads-ups the Slack intake opened in my personal assistant, the voice-learning and contact
   skills `/job-apply` calls, the one-off import of the first batch (it held real names), and the parts of the

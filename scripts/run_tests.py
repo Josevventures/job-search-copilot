@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PYTEST_SUITES = ["tests", "board/tests", "skills/job-apply-fleet/tests", "prep_extract/tests"]
+SUITE_TIMEOUT_S = 300
 NODE_TESTS = ["board/tests_js/jobs.test.js", "board/tests_js/jobs_scoring.test.js"]
 
 
@@ -19,7 +20,13 @@ def main(argv=None) -> int:
     failed = []
     for suite in PYTEST_SUITES:
         print(f"\n=== pytest {suite}", flush=True)
-        if subprocess.run([sys.executable, "-m", "pytest", suite, "-q", "-p", "no:cacheprovider"], cwd=ROOT).returncode:
+        # A test stuck for 60 s dumps every thread's stack; a suite past SUITE_TIMEOUT_S fails instead of hanging.
+        cmd = [sys.executable, "-m", "pytest", suite, "-q", "-p", "no:cacheprovider", "-o", "faulthandler_timeout=60"]
+        try:
+            if subprocess.run(cmd, cwd=ROOT, timeout=SUITE_TIMEOUT_S).returncode:
+                failed.append(suite)
+        except subprocess.TimeoutExpired:
+            print(f"TIMEOUT: {suite} ran past {SUITE_TIMEOUT_S} s", flush=True)
             failed.append(suite)
     if "--quick" not in argv:
         node = shutil.which("node")

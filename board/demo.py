@@ -64,7 +64,7 @@ def prep_pack_text(lead: dict, now: datetime) -> str:
          f"do next, and I would rather do it where it is the core of the business."),
         ("Tell us about a project that prepared you for this role.", 1500,
          f"I would use one launch I owned end to end: the problem, what we measured, what we cut, and what changed "
-         f"after. For this role that means {work}."),
+         f"after. In this role, the job is to {work}."),
         ("What are your base salary expectations?", 200, "Flexible and open to discuss."),
         ("Are you legally authorized to work in the country of this role?", None,
          "From the profile file (data/profile.md). This sample answers: Yes."),

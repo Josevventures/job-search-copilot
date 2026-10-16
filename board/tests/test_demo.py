@@ -105,7 +105,7 @@ def test_demo_prep_writes_a_labeled_sample_pack_the_card_can_open(tmp_path):
     assert demo.DEMO_LABEL in text and "Why are you interested in Acme Grid?" in text
     assert "No utility customers" in text
     assert "Acme Grid is working on the problem this role exists for: own the forecasting product." in text
-    assert "For this role that means own the forecasting product." in text
+    assert "In this role, the job is to own the forecasting product." in text
     notes = text.split("## Drafting notes (from triage)")[1].split("## Open questions")[0]
     assert "- Role fit: Shipped two data products" in notes and "- Domain: Grid software" in notes
     answers = text.split("## Answers")[1].split("## Drafting notes")[0]

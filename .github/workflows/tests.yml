@@ -1,0 +1,22 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # Light install: the core requirements plus pytest/httpx. No Playwright, so the extractor's
+      # browser tests skip themselves with a reason; everything else runs.
+      - run: pip install -r requirements-dev.txt
+      - run: python scripts/run_tests.py

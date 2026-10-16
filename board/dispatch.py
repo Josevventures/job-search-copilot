@@ -109,7 +109,7 @@ def load_jobs() -> None:
 # kept re-offering a Grant button that could never work — the same "Edit"
 # permission was granted 15 times over 45 minutes on 2026-09-09 chasing a
 # denial no grant could ever resolve.
-_SENSITIVE_PATH_MARKER = ".claude" + os.sep
+_SENSITIVE_PATH_MARKER = ".claude/"  # matched against the path with \ normalised to /, so it works on every OS
 _SENSITIVE_TEXT_SIGNALS = ("flagged as sensitive", "sensitive file", "sensitive path")
 
 # Tracks consecutive permission_denied results for the same (request text,
@@ -146,7 +146,7 @@ def _detect_sensitive_paths(denials: list[dict]) -> list[str]:
     paths = []
     for d in denials:
         file_path = (d.get("tool_input") or {}).get("file_path")
-        if file_path and _SENSITIVE_PATH_MARKER in file_path:
+        if file_path and _SENSITIVE_PATH_MARKER in file_path.replace("\\", "/"):
             paths.append(file_path)
     return paths
 

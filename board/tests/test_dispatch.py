@@ -33,6 +33,13 @@ def test_a_claude_dir_path_is_detected_as_sensitive_block():
     assert dispatch._detect_sensitive_paths(denials) == [blocked]
 
 
+def test_a_posix_claude_dir_path_is_detected_as_sensitive_block():
+    blocked = "/home/someone/.claude/projects/repo/memory/notes.md"
+    denials = [{"tool_name": "Edit", "tool_input": {"file_path": blocked}},
+               {"tool_name": "Edit", "tool_input": {"file_path": "/home/someone/notes.claude.md"}}]
+    assert dispatch._detect_sensitive_paths(denials) == [blocked]
+
+
 def test_an_ordinary_repo_path_is_an_ordinary_write():
     ok = r"C:\work\job-search-copilot\data\prep\acme.md"
     denials = [{"tool_name": "Edit", "tool_input": {"file_path": ok}}]

@@ -23,8 +23,8 @@ python -m copilot add --xlsx links.xlsx
 
 `add` creates lead files; it does not score them. Without the AI triage module they wait in **Needs re-triage**.
 
-Settings that matter on day one, from the board's **Ranking** button: your pay floor, the weights, the two band
-thresholds. Your home metros are set in the scoring config (`home_metros`, any of `new_york`, `north_jersey`,
+The settings that matter on day one are behind the board's **Ranking** button: your pay floor (the one hard gate),
+the weights and the two band thresholds. Your home metros are set in the scoring config (`home_metros`, any of `new_york`, `north_jersey`,
 `san_francisco`, `boston`, `austin`, `seattle`, `los_angeles`, `washington_dc`, `chicago`, `other_us`); POST it once:
 
 ```bash

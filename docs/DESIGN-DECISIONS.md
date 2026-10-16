@@ -1,12 +1,14 @@
 # Design decisions
 
 One entry per real decision, in the order they were made, taken from the change log and design specs of the
-private system this was extracted from. Each entry: the problem, what was tried, what was measured, the
-decision. Failures and reversals are kept. Company and person names from the records are replaced; numbers are
-as recorded. Test counts are those of the private suites at the time, which covered more than this repo.
+private system this was extracted from. Each entry gives the problem, what was tried, what was measured and the
+decision. Failures and reversals are kept. Company and person names from the records are left out; numbers are as
+recorded, except where an entry says otherwise. Test counts are those of the private suites at the time, which
+covered more than this repo.
 
 The first three entries concern the scheduled email scan that keeps my application tracker current. That routine
-is not part of this repo, but its failures shaped the record-matching rules `/job-apply` uses.
+is not part of this repo. Its failures are kept because they are where the silent-failure lesson in the README
+comes from.
 
 ---
 
@@ -21,7 +23,7 @@ rejection that said "not to move forward" instead of "not moving forward". It re
 **Measured.** 2 actionable emails never fetched, so classification never saw them.
 
 **Decision.** Add a fallback pass by company name. The session that found it could not edit the routine, so the
-fix waited two days. Lesson recorded: a brittle keyword list fails silently, which is worse than failing loudly.
+fix waited two days. The lesson recorded: a brittle keyword list fails silently, and that is worse than failing loudly.
 
 ## 2026-09-11 — The fallback query, and a field that did not exist
 
@@ -51,8 +53,6 @@ came unverified from the regenerated report and was wrong, and a second edit rem
 **Decision.** Match to the role, not the company: build the candidate set for the company, accept exactly one,
 disambiguate by role title, then posting URL, then recruiter; if it still is not one record, write nothing and
 report the email as ambiguous. The post-write check confirms the role title, not just that a value was saved.
-`/job-apply`'s rule for finding an earlier record (exactly one match reuses it, more than one stops and names
-them) follows the same idea. [JOSE TO CONFIRM: that the /job-apply rule was written with this incident in mind]
 
 ## 2026-09-30 — Triage v2: resolve links before anyone reads them
 
@@ -147,24 +147,49 @@ each line's outcome, but idempotent application, not the sidecar, is the safety 
 
 ## 2026-10-13 — A 1-100 score replaces tiers
 
-**Problem.** Ranking one company's open roles by hand showed what the tier rules got wrong: they favored roles on
+**Problem.** Ranking one company's open roles by hand showed what the tier rules got wrong. They favored roles on
 odds alone, capped product roles at the second tier, ignored pay, location and posting age, and showed a rule name
 as the "why".
 
-**Decision.** One board sorted by a weighted 1-100 composite of six factors. Only role fit and domain use model
-judgment; the other four are arithmetic on extracted facts, and missing data is "no signal", never a penalty. The
-pay floor is the only hard gate, and only on verified pay. Location never disqualifies. The weights are mine to
-change from a drawer on the phone, and the formulas live in one JavaScript file: the browser has to re-rank on
-every slider move, any Python copy would drift, and Python reads scores through a Node bridge, checked by one
-golden fixture in both test suites. "Judgment needs the LLM; arithmetic doesn't." Every move between bands is
+**Decision.** One board, ranked in two stages (next entry), sorted by a weighted 1-100 composite of six factors.
+The weights are mine to change from a drawer on the phone. The formulas live in one JavaScript file, for three
+reasons: the browser has to re-rank on every slider move, any Python copy would drift, and Python can read scores
+through a Node bridge instead, checked by one golden fixture in both test suites. Every move between bands is
 logged with the score, rank, bands and config version that were on screen.
 
 **Rejected as ground truth: my own hand ranking.** It was a learning exercise on a small pool, done quickly. The
 rule written down: never use it as ground truth. The golden fixtures are synthetic leads that check the formulas,
 not taste. Whether the order is right is my call, not a test.
 
-**Measured.** 80 leads scored and sorted in under 5 ms (median and p95, 200 timed runs after 20 warm-ups). Tests
-before merge: 1,496 backend, 142 JS, 125 skill, with 2 failures that were already failing before this work.
+**Measured.** The benchmark scores and sorts 80 synthetic leads after weight, floor and data changes, timed over
+200 runs after 20 warm-ups. On a Windows laptop the median is about 0.2 ms and the p95 about 0.5-0.6 ms; the
+test fails above 5 ms. (These figures come from this repo's test; the private record set only the 5 ms bound.)
+Tests before merge: 1,496 backend, 142 JS, 125 skill, with 2 failures that were already failing before this work.
+
+## 2026-10-13 — Two-stage ranking: a pay gate, then a weighted score
+
+**Problem.** Tiers mixed hard rules with taste. A role could be sunk by a category rule, while pay and location had
+no effect at all. I wanted exactly one thing that could knock a lead down regardless of the rest, and everything
+else to trade off inside the score.
+
+**Decision.**
+- **Stage 1, the compensation floor.** The only hard gate. If the top of a verified base range is below the floor,
+  the composite is clamped to a ceiling (`hard_gate_clamp_ceiling`), and validation keeps that ceiling under the
+  lowest band threshold, so a gated lead always lands in Low. Verified means printed on the posting or returned by
+  the ATS, as base pay; an OTE-only band does not count. A posting that itself states equity-only or unpaid is
+  gated the same way. The card shows a lock and the reason.
+- **Unverified pay is flagged, not clamped.** It gets `comp_unspecified` and is scored on an estimated market band
+  for its level, pulled toward neutral for the uncertainty. The card says the figure is an estimate.
+- **Location never disqualifies.** It counts only through its weight. A strong role in a relocation hub can still
+  score near the top.
+- **Stage 2, a six-factor weighted score from 1 to 100.** Role fit and domain are judgments: the triage model
+  writes a 0-100 score for each, with evidence. Compensation, location, posting freshness and conversion odds are
+  computed deterministically from the facts triage extracted. Missing data is "no signal", never a penalty.
+
+**Why split it this way.** "Judgment needs the LLM; arithmetic doesn't." Because four factors and the gate are
+arithmetic on stored facts, changing a weight, the floor or a band threshold re-scores every lead at once, with no
+model call. Re-scoring and re-sorting 80 leads takes about 0.2 ms, so the board re-orders while a slider moves,
+on a phone too.
 
 ## 2026-10-14 — Calibration on 40 real leads
 
@@ -175,9 +200,8 @@ own Skip, so each kept its skip record. Then a 3-lead pilot, then 40 leads re-tr
 pay bands per level were derived from 27 verified postings (median of the posted ranges, only levels with at least
 3).
 
-**Measured.** The board came out 2 Apply now, 22 Worth a look, 13 Low. My verdict on the order: "looks right".
-There is no agreement metric, on purpose (see the entry above). The record does not say where the other 3 of the
-40 landed. [JOSE TO CONFIRM: the remaining 3 of the 40 re-triaged leads]
+**Measured.** My verdict on the resulting order: "looks right". There is no agreement metric, on purpose (see
+the first 2026-10-13 entry).
 
 ## 2026-10-14 — Slack intake: the model never touches Slack
 

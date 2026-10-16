@@ -120,7 +120,8 @@ you confirm it on the board), `board`. The route only decides which section a le
 on every slider move; Python reaches it through `board/scoring_bridge.py` (a Node subprocess) and never
 re-implements a formula. A shared golden fixture is asserted by both the JS and the Python suites.
 
-Six factors, each 0-100, weighted, summed and rounded to a 1-100 composite:
+Ranking runs in two stages: a hard gate on pay (stage 1, below the table), then a weighted score (stage 2). Stage 2
+has six factors, each 0-100, weighted, summed and rounded to a 1-100 composite:
 
 | Factor | From | Notes |
 |---|---|---|
@@ -131,9 +132,12 @@ Six factors, each 0-100, weighted, summed and rounded to a 1-100 composite:
 | Location & modality | best listed location vs your home metros | never a disqualifier |
 | Posting freshness | posted date (or first seen), reposted, recruiter signal | closed = 0 |
 
-The pay floor is the only hard gate: when the top of a **verified** base range is below your floor, or the posting
-itself says equity-only or unpaid, the composite is capped (default 40) and the card shows a lock. Unverified pay
-is never gated. Leads still in the old (v1) shape show **Needs re-triage** and no score at all: a made-up score
+Stage 1, the pay floor, is the only hard gate: when the top of a **verified** base range is below your floor, or
+the posting itself says equity-only or unpaid, the composite is capped (default 40) and the card shows a lock.
+Unverified pay is flagged `comp_unspecified` and scored on an estimated band, never gated. Location never
+disqualifies; it counts only through its weight. Because only the two judgment factors come from the model, a
+change to the weights, the floor or the bands re-scores every lead in memory on the client; the benchmark in
+`board/tests_js/jobs_scoring.test.js` re-scores and re-sorts 80 leads in about 0.2 ms and fails above 5 ms. Leads still in the old (v1) shape show **Needs re-triage** and no score at all: a made-up score
 would look authoritative and be wrong.
 
 Bands: **Apply now**, **Worth a look**, **Low**, by two thresholds; validation keeps every capped lead in Low. Each

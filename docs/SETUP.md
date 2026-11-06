@@ -148,3 +148,7 @@ python scripts/run_tests.py
 
 Four pytest suites (one process each) and the Node tests. The extractor's browser tests are skipped with a reason
 unless Playwright's Chromium is installed.
+
+Run them with the interpreter you installed the requirements into (`run_tests.py` uses whichever Python runs it).
+On Windows a Python without them fails fast with a usage error that names the interpreter: the Slack modules need
+the `tzdata` package, because Windows has no system time-zone database.

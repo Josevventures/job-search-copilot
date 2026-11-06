@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from lib import dedupe  # noqa: E402
 from lib import fetch as fetchmod  # noqa: E402
 from lib.canonical import canonicalize, is_linkedin_post, is_shortlink, is_x_post, lead_id as make_lead_id, unwrap_static  # noqa: E402
 from lib.lead_store import LeadStore, LeadStoreError  # noqa: E402
@@ -79,20 +80,64 @@ def _err(e):
     return f"{type(e).__name__}: {e}"[:200]
 
 
+def url_index(store) -> tuple[dict, dict]:
+    """Posting-URL keys (lib.dedupe.url_key) of every known lead -> its lead id: (live lead files, skipped leads).
+    Built from each lead's canonical URL, triage.jd_url, intake.jd_links and source URLs, so the same posting reached
+    through a second LinkedIn post or a careers-site link finds the lead that already holds it."""
+    live, gone = {}, {}
+    for lead in store.list():
+        if not isinstance(lead, dict) or not lead.get("lead_id"):
+            continue
+        i = lead.get("intake") or {}
+        urls = [lead.get("canonical_url"), (lead.get("triage") or {}).get("jd_url")] + list(i.get("jd_links") or [])
+        urls += [s.get("url") for s in i.get("sources") or [] if isinstance(s, dict) and s.get("kind") != "post"]
+        for k in filter(None, map(dedupe.url_key, urls)):
+            live.setdefault(k, lead["lead_id"])
+    for rec in store.skip_records():
+        k = dedupe.url_key(rec.get("canonical_url"))
+        if k:
+            gone.setdefault(k, rec["lead_id"])
+    return live, gone
+
+
 def ingest(urls, via, store, fetcher=fetchmod.fetch, note=None, slack=None):
     """One bad URL never stops the run: each URL (and each roundup child) is isolated, recorded in
-    rep["failed"], and rep["by_url"] maps every raw URL to its outcome (spec 2026-10-14 jobs-slack-intake §2)."""
+    rep["failed"], and rep["by_url"] maps every raw URL to its outcome (spec 2026-10-14 jobs-slack-intake §2).
+    Duplicates (2026-10-29): a new canonical URL that names a posting an existing lead already holds is appended to
+    that lead's sources (rep["deduped"]) instead of making a second lead; company + title matching runs after triage
+    (fleet_merge.merge_batch), since intake does not know them yet."""
     rep = {"created": 0, "merged": 0, "roundups": 0, "login_walled": 0, "ignored": 0,
-           "previously_skipped": 0, "lead_ids": [], "failed": [], "by_url": {}}
+           "previously_skipped": 0, "deduped": 0, "lead_ids": [], "failed": [], "by_url": {}}
     skipped = store.skipped_ids()  # Jobs-tab skip log: never re-create (and re-pay triage for) a rejected job
+    live, gone = url_index(store)
     extra = {"note": note or None, "slack": slack or None}
 
     def put(canonical, source, **fields):
-        if make_lead_id(canonical) in skipped:
+        lid = make_lead_id(canonical)
+        if lid in skipped:
             rep["previously_skipped"] += 1
             return _SKIPPED
+        key = dedupe.url_key(canonical)
+        if key and not store._path(lid).exists():
+            if live.get(key) and live[key] != lid:
+                target = live[key]
+                try:
+                    store.append_source(target, source)
+                except LeadStoreError:  # the target vanished (skipped meanwhile): fall through and create
+                    live.pop(key, None)
+                else:
+                    rep["merged"] += 1
+                    rep["deduped"] += 1
+                    if target not in rep["lead_ids"]:
+                        rep["lead_ids"].append(target)
+                    return target
+            elif gone.get(key):
+                rep["previously_skipped"] += 1
+                return _SKIPPED
         lid, created = store.create_or_merge(canonical, source, **fields)
         rep["created" if created else "merged"] += 1
+        if key:
+            live.setdefault(key, lid)
         if lid not in rep["lead_ids"]:
             rep["lead_ids"].append(lid)
         return lid

@@ -95,7 +95,8 @@ def test_merge_writes_v2_lead_with_route_and_clears_v1_keys(tmp_dirs):
     s.update(lid, "triage", {"bucket": "tier1", "bucket_reason": "strong_fit_enjoyed: x", "category": "vc",
                              "relevance": "strong", "why": "old"})
     write_ckpt(tmp_dirs, ckpt(lid))
-    assert fm.merge_batch("b1", s, P) == {"merged": 1, "failed": 0, "skipped_missing": 0}
+    assert fm.merge_batch("b1", s, P) == {"merged": 1, "failed": 0, "skipped_missing": 0, "folded": 0,
+                                              "possible_duplicates": 0}
     lead = s.read(lid)
     t = lead["triage"]
     assert lead["schema_version"] == 2 and t["route"] == "board" and t["triage_status"] == "complete"
@@ -139,7 +140,7 @@ def test_summary_is_an_alphabetical_run_report(tmp_dirs):
     s = LeadStore()
     for i, co in enumerate(["Zeta", "Acme"]):
         lid = _lead(s, f"https://a.com/job/{i}")
-        write_ckpt(tmp_dirs, ckpt(lid, company=co, url=f"https://a.com/job/{i}"))
+        write_ckpt(tmp_dirs, ckpt(lid, company=co, url=f"https://a.com/job/{i}", jd_url=f"https://a.com/job/{i}"))
     fm.merge_batch("b1", s, P)
     text = fm.write_summary(s, "2026-10-13").read_text(encoding="utf-8")
     assert "Ranked board: open the Jobs tab" in text
@@ -302,5 +303,6 @@ def test_merge_ignores_the_prefetched_jd_subdir(tmp_dirs):
     jd.mkdir()
     (jd / f"{lid}.txt").write_text("Head of Strategy\n\nOwn the roadmap.\n", encoding="utf-8")
     (jd / "deadbeef0000.json").write_text("{not a checkpoint", encoding="utf-8")
-    assert fm.merge_batch("b1", s, P) == {"merged": 1, "failed": 0, "skipped_missing": 0}
+    assert fm.merge_batch("b1", s, P) == {"merged": 1, "failed": 0, "skipped_missing": 0, "folded": 0,
+                                              "possible_duplicates": 0}
     assert s.read(lid)["triage"]["triage_status"] == "complete"

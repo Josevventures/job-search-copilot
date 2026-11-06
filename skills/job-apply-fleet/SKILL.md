@@ -16,7 +16,7 @@ Upstream of `/job-apply`. Output: lead files in `data/leads/` + a summary `data/
 ```bash
 $PY $SK/leads_intake.py --xlsx "<path>" --via sheet      # or --file <txt>, or URLs as args; --via slack|manual
 ```
-Report the JSON line (created / merged / roundups / login_walled / ignored / failed) to the user in one sentence.
+Report the JSON line (created / merged / deduped / roundups / login_walled / ignored / failed) to the user in one sentence. `deduped` counts links that named a posting an existing lead already holds: they were added to that lead's sources, not made into a new lead.
 
 ## Stage 2 — Screen (Haiku) + Airtable dedupe
 
@@ -52,6 +52,8 @@ Report the JSON line (created / merged / roundups / login_walled / ignored / fai
 $PY $SK/fleet_merge.py --batch $BATCH
 $PY $SK/fleet_merge.py --summary
 ```
+The merge also matches each fresh lead against every other lead and the skip log (`lib/dedupe.py`): a confident duplicate (same posting URL, or same company and the same title) is folded into the existing lead and logged as a `duplicate` skip (`folded` in the JSON); a weaker match is kept and flagged `possible_duplicate_of` for the board (`possible_duplicates`). To audit without changing anything: `$PY $SK/fleet_merge.py --dedupe-report`.
+
 Present the run report: counts per route (board / closed / needs re-triage / already in Airtable / needs attention), then the Board table (alphabetical by company: role · location/pay · what the job is · role fit / domain · apply link · engage link · flags). The report is alphabetical on purpose; the ranked order lives on the Jobs board (`python -m copilot serve`), so point the user there and to the summary file.
 
 ## Unattended mode (Slack intake scheduled run)

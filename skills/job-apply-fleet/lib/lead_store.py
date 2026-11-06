@@ -18,7 +18,8 @@ GROUPS = {
         "alternates", "draft_answers", "bucket", "bucket_reason", "fetch_method",
         "route", "checkpoint_version", "job_summary", "scores", "main_gap", "level", "locations", "modality",
         "relocation_assistance", "pay_bands", "pay_source", "bonus", "equity", "posted_date",
-        "posted_date_source", "reposted", "applicant_count", "inbound", "recruiter_signal"}),
+        "posted_date_source", "reposted", "applicant_count", "inbound", "recruiter_signal",
+        "possible_duplicate_of", "possible_duplicate_note"}),
     "decision": frozenset({"decision", "history", "dispatch", "airtable_record_id",
                            "pending", "job_status", "prep_file", "band_override", "still_open"}),
 }
@@ -187,20 +188,26 @@ class LeadStore:
         with open(self.skips_path, "a", encoding="utf-8", newline="\n") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
-    def skipped_ids(self) -> set[str]:
+    def skip_records(self) -> "list[dict]":  # quoted: `list` is a method name in this class
+        """Every well-formed _skips.jsonl line (a dict with a lead_id), oldest first."""
         try:
             text = self.skips_path.read_text(encoding="utf-8")
         except FileNotFoundError:
-            return set()
-        ids = set()
+            return []
+        out = []
         for n, line in enumerate(text.splitlines(), 1):
             if not line.strip():
                 continue
             try:
-                ids.add(json.loads(line)["lead_id"])
+                rec = json.loads(line)
+                rec["lead_id"]  # noqa: B018 - shape check
+                out.append(rec)
             except (json.JSONDecodeError, KeyError, TypeError) as e:
                 warnings.warn(f"{SKIPS_FILE} line {n} ignored: {e!r}", UserWarning)
-        return ids
+        return out
+
+    def skipped_ids(self) -> set[str]:
+        return {r["lead_id"] for r in self.skip_records()}
 
     @staticmethod
     def effective_bucket(lead: dict) -> str | None:

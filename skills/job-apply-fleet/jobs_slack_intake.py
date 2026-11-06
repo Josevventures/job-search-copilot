@@ -318,6 +318,7 @@ def run(*, slack, store, ledger, user_id, channel, now, post=True, runner=run_he
                 except LeadStoreError:
                     pass
     scores = scorer(list(leads.values()), now) if leads else {}
+    folded = {r["lead_id"]: r for r in store.skip_records() if r.get("reason") == "duplicate" and r.get("auto")}
     attempts = ledger.attempts()
     auto_left = {lid for lid in leads if si.auto_retry_left(lid, attempts)}
 
@@ -327,7 +328,8 @@ def run(*, slack, store, ledger, user_id, channel, now, post=True, runner=run_he
                  if si.redrop_retry_due(leads.get(lid), m["ts"], lid, at, attempts)}
         return sr.Ctx(leads=leads, scores=scores, run_ok=bool(result.get("ok")),
                       airtable_skipped=result.get("airtable_dedupe") == "skipped", screen_labels=labels,
-                      pre_triaged=set(st.get("pre_triaged") or []), retry=retry, auto_retry=auto_left)
+                      pre_triaged=set(st.get("pre_triaged") or []), retry=retry, auto_retry=auto_left,
+                      folded=folded)
 
     # 5. replies, after quiet hours
     if post:

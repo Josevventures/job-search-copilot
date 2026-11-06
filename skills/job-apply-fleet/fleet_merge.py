@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from lib import paths  # noqa: E402
+from lib import dedupe, paths  # noqa: E402
 from lib.canonical import canonicalize  # noqa: E402
 from lib.checkpoint import TRIAGE_KEYS_FROM_CHECKPOINT, validate  # noqa: E402
 from lib.lead_store import LeadStore, LeadStoreError  # noqa: E402
@@ -28,8 +28,36 @@ def _now():
     return datetime.now(timezone.utc).isoformat()
 
 
+def _fresh(lead) -> bool:
+    """Nothing has happened to this lead yet (no decision, history, pending action or job): safe to fold away."""
+    d = lead.get("decision") or {}
+    return not (d.get("decision") or d.get("history") or d.get("pending") or d.get("job_status"))
+
+
+def _fold(store, lead, target, why, now) -> None:
+    """Confident duplicate (2026-10-29): its sources join the existing lead, a `duplicate` line goes to the skip log
+    (so the same URLs are never re-created) and the second lead file is removed: one card per role."""
+    lid, t = lead["lead_id"], lead.get("triage") or {}
+    if not target["skipped"]:
+        for src in (lead.get("intake") or {}).get("sources") or []:
+            if isinstance(src, dict) and src.get("url"):
+                store.append_source(target["lead_id"], src)
+    if lid not in store.skipped_ids():
+        store.append_skip({"lead_id": lid, "canonical_url": lead.get("canonical_url"), "company": t.get("company"),
+                           "role_title": t.get("role_title"), "location": t.get("location"), "pay": t.get("pay"),
+                           "reason": "duplicate", "duplicate_of": target["lead_id"],
+                           "duplicate_label": dedupe.label(target), "duplicate_state": target["state"],
+                           "note": f"folded at intake: {why}", "auto": True, "skipped_at": now,
+                           "schema_version": lead.get("schema_version", 1), "scores": t.get("scores")})
+    store.delete(lid)
+
+
 def merge_batch(batch_id, store, prefs):
-    rep = {"merged": 0, "failed": 0, "skipped_missing": 0}
+    rep = {"merged": 0, "failed": 0, "skipped_missing": 0, "folded": 0, "possible_duplicates": 0}
+    known = {}  # lead_id -> dedupe record: every other lead file plus the skip log (2026-10-29 duplicate matching)
+    for r in [dedupe.record(s) for s in store.skip_records()] + [dedupe.record(l) for l in store.list()]:
+        if r.get("lead_id"):
+            known[r["lead_id"]] = r
     for f in sorted((paths.checkpoints_dir() / batch_id).glob("*.json")):
         if f.name.startswith("_"):
             continue
@@ -59,11 +87,28 @@ def merge_batch(batch_id, store, prefs):
             continue
         fields = {k: d.get(k) for k in TRIAGE_KEYS_FROM_CHECKPOINT}
         rt, _reason = route(fields, lead.get("intake", {}).get("screen"), prefs)
-        store.update(lid, "triage", {**fields, **V1_CLEARED, "triage_status": "complete", "triage_error": None,
-                                     "batch_id": batch_id, "triaged_at": _now(), "route": rt},
-                     schema_version=2)
+        me = dedupe.record({**lead, "triage": {**(lead.get("triage") or {}), **fields}})
+        hit = dedupe.best_match(me, [r for k, r in known.items() if k != lid])
+        dup = hit[1] if hit else None
+        stored = store.update(lid, "triage", {
+            **fields, **V1_CLEARED, "triage_status": "complete", "triage_error": None, "batch_id": batch_id,
+            "triaged_at": _now(), "route": rt, "possible_duplicate_of": dup["lead_id"] if dup else None,
+            "possible_duplicate_note": dedupe.label(dup) if dup else None}, schema_version=2)
         rep["merged"] += 1
+        if hit and hit[0] == "confident" and _fresh(stored):
+            _fold(store, stored, dup, hit[2], _now())
+            known.pop(lid, None)
+            rep["folded"] += 1
+            continue
+        if dup:
+            rep["possible_duplicates"] += 1
+        known[lid] = dedupe.record(stored)
     return rep
+
+
+def dedupe_report(store) -> list[dict]:
+    """Report-only (2026-10-29): every lead pair the duplicate matcher flags. Writes nothing."""
+    return dedupe.report(store.list(), store.skip_records())
 
 
 def screen_only(store, prefs):
@@ -177,6 +222,7 @@ def main(argv=None):
     g.add_argument("--screen-only", action="store_true")
     g.add_argument("--airtable-dedupe")
     g.add_argument("--summary", action="store_true")
+    g.add_argument("--dedupe-report", action="store_true", help="list suspected duplicate leads; changes nothing")
     ap.add_argument("--date", default=datetime.now().strftime("%Y-%m-%d"))
     a = ap.parse_args(argv)
     store, prefs = LeadStore(), load_prefs()
@@ -184,6 +230,10 @@ def main(argv=None):
         print(json.dumps(merge_batch(a.batch, store, prefs)))
     elif a.screen_only:
         print(f"screened out: {screen_only(store, prefs)}")
+    elif a.dedupe_report:
+        for p in dedupe_report(store):
+            print(f"{p['kind']:9} {p['a']} [{p['a_state']}] {p['a_label']}  <->  {p['b']} [{p['b_state']}] "
+                  f"{p['b_label']}  ({p['why']})")
     elif a.airtable_dedupe:
         print(f"already in Airtable: {airtable_dedupe(store, a.airtable_dedupe)}")
     else:

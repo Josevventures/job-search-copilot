@@ -17,6 +17,12 @@ def parse_failure(reason, name=None) -> str:
     return f"⚠️ {who}Could not parse job description ({(reason or 'unknown')[:REASON_MAX]}). {REDROP}"
 
 
+def folded_line(rec: dict) -> str:
+    """A lead fleet_merge folded into an existing one (same role, 2026-10-29): say where the role already is."""
+    where = {"applied": "already applied", "skipped": "skipped earlier"}.get(rec.get("duplicate_state"), "on board")
+    return f"↩️ same role as one {where}: {rec.get('duplicate_label') or rec.get('duplicate_of')} — link added there"
+
+
 @dataclass
 class Ctx:
     leads: dict
@@ -27,6 +33,7 @@ class Ctx:
     pre_triaged: set = field(default_factory=set)
     retry: set = field(default_factory=set)   # failed leads the user re-dropped, due a retry: pending until triaged
     auto_retry: set = field(default_factory=set)   # failed leads whose one automatic retry is still to come
+    folded: dict = field(default_factory=dict)   # lead_id -> skip-log line of a duplicate folded into another lead
 
 
 def _name(lead):
@@ -102,6 +109,9 @@ def render(by_url: dict, ctx: Ctx, only=None) -> tuple[str, bool, list]:
         items = []
         for lid in lids:
             lead = ctx.leads.get(lid)
+            if lead is None and lid in ctx.folded:
+                body.append(folded_line(ctx.folded[lid]))
+                continue
             if lead is None:
                 body.append(f"❌ lead file missing: {lid}")
                 continue

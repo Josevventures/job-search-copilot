@@ -1,0 +1,157 @@
+/* Jobs board stylesheet: design tokens and shared components. Page layout lives in jobs.html's own <style>, after
+   this file. Rules: tokens only (no raw colours in page CSS), dark by default, phone first (16px gutter, 48px taps),
+   one accent (cyan), status colours for status only, system fonts only (no web fonts). */
+
+/* ---- tokens ------------------------------------------------------------------------------------------------- */
+:root {
+  color-scheme: dark;
+  /* surfaces + text. Contrast (dataviz validator): text 14.9:1, text-2 7.2:1, text-3 5.9:1 on --surface. */
+  --bg: #0b0d0f; --surface: #15181b; --surface-2: #1d2125; --surface-3: #262b30;
+  --text: #e6ecef; --text-2: #9aa6ad; --text-3: #8a969d;
+  --accent: #00d9ff; --accent-ink: #0b0d0f; --accent-soft: rgba(0, 217, 255, 0.12); --accent-line: rgba(0, 217, 255, 0.45);
+  --good: #48e29a; --warn: #f5c451; --danger: #f2665c;          /* status only: done, attention, error */
+  --warn-soft: rgba(245, 196, 81, 0.12); --danger-soft: rgba(242, 102, 92, 0.12); --danger-strong: #7a2f2a;
+  /* translucent chrome (sticky top bar, sheet scrim) */
+  --chrome: rgba(11, 13, 15, 0.92); --chrome-strong: rgba(11, 13, 15, 0.94); --scrim: rgba(0, 0, 0, 0.55); --scrim-light: rgba(0, 0, 0, 0.2);
+  /* type */
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  --fs-hero: 32px; --fs-title: 22px; --fs-body: 17px; --fs-small: 13px; --fs-micro: 12px;
+  /* shape + spacing (8px grid) */
+  --radius: 16px; --radius-sm: 12px; --radius-pill: 24px; --tap: 48px; --u: 8px; --gutter: 16px; --page-max: 1280px;
+  --top-h: 56px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+/* ---- base --------------------------------------------------------------------------------------------------- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; background: var(--bg); }
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: var(--fs-body); line-height: 1.4;
+  font-variant-numeric: tabular-nums; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; }
+input { font-size: var(--fs-body); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.small { font-size: var(--fs-small); color: var(--text-2); }
+.muted { color: var(--text-3); }
+.hero { font-size: var(--fs-hero); font-weight: 600; line-height: 1.15; letter-spacing: -0.01em; }
+h1, h2, h3 { font-size: var(--fs-body); font-weight: 600; }
+
+/* ---- top bar + page nav ------------------------------------------------------------------ */
+.top { position: sticky; top: 0; z-index: 20; background: var(--chrome); backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px); padding: 0 16px; padding-top: env(safe-area-inset-top); }
+.top-inner { display: flex; align-items: center; gap: var(--u); max-width: var(--page-max); margin: 0 auto; min-height: var(--top-h); }
+.nav { display: flex; align-items: center; gap: 4px; font-size: var(--fs-small); color: var(--text-3); flex: 1; min-width: 0; }
+.nav a { min-height: var(--tap); display: inline-flex; align-items: center; padding: 0 4px; color: var(--text-2); text-decoration: none; }
+.nav a:hover { color: var(--text); }
+.nav a[aria-current="page"] { color: var(--accent); }
+.icon-btn { width: var(--tap); height: var(--tap); border-radius: 50%; display: inline-grid; place-items: center; color: var(--text-2); position: relative; flex: 0 0 auto; }
+.icon-btn:hover { background: var(--surface); }
+.icon-btn svg { width: 22px; height: 22px; }
+.icon-btn .dot { position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+/* ---- banners (page-level error / warning) ------------------------------------------------------------------- */
+.banner { margin: var(--u) 16px 0; padding: 12px 16px; border-radius: var(--radius-sm); background: var(--surface); font-size: var(--fs-small); overflow-wrap: anywhere; }
+.banner.error { color: var(--danger); }
+.banner.warn { color: var(--warn); }
+
+/* ---- layout ------------------------------------------------------------------------------------------------- */
+main { padding: 8px 16px 0; max-width: var(--page-max); margin: 0 auto; }
+.card { background: var(--surface); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.row { display: flex; align-items: center; gap: var(--u); min-width: 0; }
+.spread { justify-content: space-between; }
+.grow { flex: 1; min-width: 0; }
+
+/* ---- buttons ------------------------------------------------------------------------------------------------ */
+.btn { min-height: var(--tap); padding: 0 16px; border-radius: 24px; background: var(--surface-2); color: var(--text); font-size: var(--fs-body); }
+.btn:hover { background: var(--surface-3); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.ghost { background: transparent; color: var(--accent); padding: 0 8px; }
+.btn.danger { color: var(--danger); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn.sm { min-height: 40px; padding: 0 12px; font-size: var(--fs-small); }
+
+/* ---- segmented control, pills, tags ------------------------------------------------------------------------- */
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 24px; padding: 4px; gap: 4px; }
+.seg button { min-height: 40px; min-width: 64px; padding: 0 16px; border-radius: 20px; color: var(--text-2); font-size: var(--fs-small); }
+.seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
+.pill { font-size: var(--fs-small); padding: 2px 10px; border-radius: 12px; background: var(--surface-2); color: var(--text-2); white-space: nowrap; }
+.pill.warn { color: var(--warn); }
+.pill.good { color: var(--good); }
+.pill.accent { color: var(--accent); }
+.tag { font-size: var(--fs-small); color: var(--accent); background: var(--accent-soft); border-radius: 10px; padding: 0 8px; }
+
+/* ---- chips (filters, toggles, quick picks) ------------------------------------------------------------------ */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-height: var(--tap); padding: 0 14px; border-radius: 24px; background: var(--surface-2); display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-small); color: var(--text); }
+.chip .sw { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+.chip .of { color: var(--text-3); }
+.chip[aria-pressed="true"] { background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--accent); }
+.hscroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.hscroll::-webkit-scrollbar { display: none; }
+
+/* ---- lists, disclosure, empty states ------------------------------------------------------------------------ */
+.list { display: flex; flex-direction: column; }
+.list .li { display: flex; align-items: center; justify-content: space-between; gap: var(--u); min-height: var(--tap); font-size: var(--fs-small); color: var(--text-2); }
+.list .li + .li { box-shadow: 0 -1px 0 var(--surface-2); }
+.list .li b { color: var(--text); font-weight: 500; }
+details.more > summary { min-height: var(--tap); display: flex; align-items: center; cursor: pointer; font-size: var(--fs-small); color: var(--accent); list-style: none; }
+details.more > summary::-webkit-details-marker { display: none; }
+.empty { font-size: var(--fs-small); color: var(--text-2); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.empty-state { background: var(--surface); border-radius: var(--radius); padding: 24px 16px; text-align: center; font-size: var(--fs-small); color: var(--text-2); }
+
+/* ---- bottom sheet (dialog). Open: remove [hidden] on .scrim + .sheet, then add .on next frame. ------------- */
+.scrim { position: fixed; inset: 0; z-index: 40; background: var(--scrim); opacity: 0; transition: opacity 250ms var(--ease); }
+.scrim.on { opacity: 1; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; max-height: 88vh; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--surface); border-radius: 20px 20px 0 0; padding: 8px 16px calc(24px + env(safe-area-inset-bottom));
+  transform: translateY(100%); transition: transform 250ms var(--ease); max-width: 640px; margin: 0 auto; }
+.sheet.on { transform: none; }
+.sheet:focus { outline: none; }
+.sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--surface-3); margin: 4px auto 12px; }
+.sheet .content { display: flex; flex-direction: column; gap: 24px; }
+.sheet .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--u); }
+.sheet section { display: flex; flex-direction: column; gap: 12px; }
+.sheet h3 { font-size: var(--fs-small); color: var(--text-2); font-weight: 500; }
+
+/* ---- form fields -------------------------------------------------------------------------------------------- */
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: var(--fs-small); color: var(--text-2); }
+.field input, .field select { min-height: var(--tap); background: var(--surface-2); border: 0; border-radius: var(--radius-sm); padding: 0 12px; width: 100%; }
+.field textarea { min-height: 88px; background: var(--surface-2); border: 0; border-radius: var(--radius-sm); padding: 12px; width: 100%; font-size: var(--fs-body); resize: vertical; }
+.field input[aria-invalid="true"] { box-shadow: inset 0 0 0 1.5px var(--danger); }
+.field .count { font-size: 12px; color: var(--text-3); align-self: flex-end; }
+.field .count.near { color: var(--warn); }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fields .wide { grid-column: 1 / -1; }
+.form-err { color: var(--danger); font-size: var(--fs-small); padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); overflow-wrap: anywhere; }
+.field-err { color: var(--danger); font-size: var(--fs-small); }
+.search { width: 100%; min-height: var(--tap); padding: 0 16px; background: var(--surface-2); border: 0; border-radius: 24px; color: var(--text); font-size: 16px; }
+.search::placeholder, .field textarea::placeholder { color: var(--text-3); }
+input[type="range"] { accent-color: var(--accent); }
+
+/* ---- toasts + snackbars ------------------------------------------------------------------------------------- */
+.toast { position: fixed; left: 16px; right: 16px; top: calc(64px + env(safe-area-inset-top)); z-index: 50; max-width: 480px; margin: 0 auto; padding: 12px 16px;
+  background: var(--surface-3); border-radius: var(--radius-sm); font-size: var(--fs-small); text-align: center; }
+/* snackbar = a toast that carries one action (Undo). Stack them in .snacks, pinned to the bottom. */
+.snacks { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; flex-direction: column; gap: 8px;
+  padding: 8px 16px calc(12px + env(safe-area-inset-bottom)); pointer-events: none; }
+.snack { pointer-events: auto; width: 100%; max-width: 640px; margin: 0 auto; display: flex; align-items: center; gap: 12px;
+  min-height: 56px; padding: 4px 4px 4px 16px; background: var(--surface-3); border-radius: var(--radius-sm); font-size: var(--fs-small);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+.snack span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.snack .btn { flex: 0 0 auto; background: transparent; color: var(--accent); font-weight: 600; }
+
+/* ---- desktop ------------------------------------------------------------------------------------------------ */
+@media (min-width: 1024px) {
+  .sheet { bottom: 16px; border-radius: 20px; }
+  /* side sheet: a bottom sheet on phone, a right-hand drawer on desktop (for settings you tune while watching the page) */
+  .sheet.side { left: auto; right: 16px; top: 16px; bottom: 16px; width: 400px; max-width: 400px; max-height: none; margin: 0; transform: translateX(110%); }
+  .sheet.side.on { transform: none; }
+  .scrim.light { background: var(--scrim-light); }   /* behind a side sheet: the page stays readable for live preview */
+}
+
+/* ---- reduced motion ----------------------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}

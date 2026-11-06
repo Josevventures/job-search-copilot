@@ -26,6 +26,7 @@ from copilot import config  # noqa: E402
 
 WEB = BOARD / "web"
 JOBS_PAGE, JOBS_JS, JOBS_SCORING_JS = WEB / "jobs.html", WEB / "jobs.js", WEB / "jobs_scoring.js"
+BOARD_CSS = WEB / "board.css"   # the board's design tokens and shared components
 
 
 def build(leads_dir: Path | None = None, config_path: Path | None = None, dispatch_enabled: bool | None = None,
@@ -79,6 +80,11 @@ def jobs_script():
 @app.get("/jobs_scoring.js")
 def jobs_scoring_script():
     return FileResponse(JOBS_SCORING_JS, media_type="application/javascript; charset=utf-8", headers=_NO_STORE)
+
+
+@app.get("/board.css")
+def board_stylesheet():
+    return FileResponse(BOARD_CSS, media_type="text/css; charset=utf-8", headers=_NO_STORE)
 
 
 @app.get("/api/files/{path:path}")

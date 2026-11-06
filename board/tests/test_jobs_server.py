@@ -46,7 +46,7 @@ def test_lifespan_starts_and_stops_the_sweeper(server_mod, monkeypatch):
 def test_jobs_routes_are_registered(server_mod):
     from fastapi.testclient import TestClient
     paths = {getattr(r, "path", None) for r in server_mod.app.routes}
-    assert {"/jobs", "/jobs.js", "/jobs_scoring.js", "/"} <= paths
+    assert {"/jobs", "/jobs.js", "/jobs_scoring.js", "/board.css", "/"} <= paths
     r = TestClient(server_mod.app).post("/api/jobs/leads/0123456789ab/retry")
     assert r.status_code in (404, 503)   # 503 when the job_apply module is off, else "no lead file"
 
@@ -145,3 +145,36 @@ def test_jobs_page_has_the_ranking_drawer(server_mod):
     assert "L.rankButtonText" in s and "L.settingsSaveOutcome" in s
     assert "Set at least one weight above 0" in s
     assert "await loadConfig(); }" not in s         # a 409 never auto-reloads over unsaved edits
+
+
+def test_stylesheet_is_served_and_linked_with_no_web_fonts(server_mod):
+    from fastapi.testclient import TestClient
+    c = TestClient(server_mod.app)
+    r = c.get("/board.css")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/css")
+    for token in ("--bg:", "--surface:", "--accent:", ".top {", ".card {", ".btn.primary", ".chip[aria-pressed=\"true\"]",
+                  ".sheet.on", ".sheet.side", ".snack {", ".toast {", ".empty-state", "prefers-reduced-motion"):
+        assert token in r.text, token
+    html = c.get("/jobs").text
+    assert '<link rel="stylesheet" href="/board.css">' in html
+    assert "fonts.googleapis" not in html and "@import" not in r.text and "url(" not in r.text
+
+
+def test_every_id_the_page_script_looks_up_exists_in_the_markup(server_mod):
+    import re
+    from fastapi.testclient import TestClient
+    html = TestClient(server_mod.app).get("/jobs").text
+    ids = set(re.findall(r"\$\('([a-z0-9-]+)'\)", _inline_script(html)))
+    assert len(ids) > 20
+    missing = sorted(i for i in ids if f'id="{i}"' not in html)
+    assert not missing, missing
+
+
+def test_jobs_page_has_the_sheets_and_the_undo_snackbar(server_mod):
+    from fastapi.testclient import TestClient
+    html = TestClient(server_mod.app).get("/jobs").text
+    for i in ("lead-sheet", "skip-sheet", "help-sheet", "rank-sheet", "undo-stack", "scrim", "modules-panel"):
+        assert f'id="{i}"' in html, i
+    assert 'class="sheet side" id="rank-sheet"' in html     # a side drawer on desktop, a bottom sheet on a phone
+    s = _inline_script(html)
+    assert "'snack'" in s and "function openDetail" in s

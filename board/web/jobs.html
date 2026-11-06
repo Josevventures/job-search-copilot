@@ -3,204 +3,225 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d0f">
 <title>Jobs board</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/board.css">
 <style>
-  /* Design tokens shared with the private dashboard this page was built inside. */
-  :root {
-    --bg: #000000; --bg-panel: #04090b; --bg-panel-alt: #071216;
-    --accent: #00d9ff; --accent-soft: rgba(0, 217, 255, 0.12); --accent-dim: rgba(0, 217, 255, 0.35);
-    --border: rgba(0, 217, 255, 0.28); --border-soft: rgba(0, 217, 255, 0.14);
-    --text: #d7f6fb; --text-secondary: #6f95a0; --text-muted: #33474d;
-    --green: #48e29a; --green-dim: rgba(72,226,154,0.15);
-    --amber: #f5c451; --amber-dim: rgba(245,196,81,0.15);
-    --red: #f2665c; --red-dim: rgba(242,102,92,0.15);
-    --font-display: 'Orbitron', 'Segoe UI', sans-serif;
-    --font-mono: 'Share Tech Mono', 'Consolas', monospace;
-    --radius: 3px; --tap: 44px;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  [hidden] { display: none !important; }
-  html { -webkit-text-size-adjust: 100%; }
-  body {
-    background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 15px; line-height: 1.4;
-    padding-bottom: calc(180px + env(safe-area-inset-bottom)); overflow-x: hidden;
-  }
+  /* Jobs board layout. Tokens and shared components come from /board.css (web/board.css); only this page's layout
+     lives here. Logic is in /jobs.js (pure, tested). */
+  body { padding-bottom: calc(32px + env(safe-area-inset-bottom)); }
+  body.has-snacks { padding-bottom: calc(220px + env(safe-area-inset-bottom)); }
   a { color: var(--accent); }
-  button { font: inherit; cursor: pointer; }
 
-  .top { position: sticky; top: 0; z-index: 5; background: rgba(0,10,12,0.96); border-bottom: 1px solid var(--border-soft); padding: 4px 16px 10px; }
-  .nav { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
-  .nav a { min-height: var(--tap); display: inline-flex; align-items: center; color: var(--text-secondary); text-decoration: none; }
-  .nav a[aria-current="page"] { color: var(--accent); }
-  .chips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 8px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-  .chips::-webkit-scrollbar { display: none; }
-  .chip { flex: 0 0 auto; min-height: var(--tap); padding: 0 14px; border: 1px solid var(--border-soft); border-radius: 22px; background: transparent; color: var(--text); font-size: 13px; white-space: nowrap; }
-  .chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
-  .search { width: 100%; min-height: var(--tap); padding: 0 12px; background: var(--bg-panel-alt); border: 1px solid var(--border-soft); border-radius: var(--radius); color: var(--text); font: inherit; font-size: 16px; }
+  .rank-btn { flex: 0 1 auto; min-width: 0; max-width: 52%; min-height: 40px; padding: 0 14px; border-radius: 20px; background: var(--surface-2);
+    color: var(--text-2); font-size: var(--fs-small); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank-btn:hover { background: var(--surface-3); color: var(--text); }
+  .rank-btn.dirty { color: var(--warn); box-shadow: inset 0 0 0 1px var(--warn); }
 
-  .modules-panel { margin: 12px 16px 0; border: 1px solid var(--border-soft); border-radius: var(--radius); background: var(--bg-panel); }
-  .modules-panel summary { min-height: var(--tap); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 12px; cursor: pointer; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
-  .modules-panel .mod-note { margin: 0 12px 8px; padding: 6px 10px; border: 1px solid var(--amber-dim); color: var(--amber); font-size: 13px; border-radius: var(--radius); }
-  .mod-list { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 0 12px 12px; }
-  .mod { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: baseline; font-size: 13px; }
-  .modules-panel .pill { font-family: var(--font-mono); letter-spacing: 0; text-transform: none; font-size: 11px; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--border-soft); color: var(--text-secondary); text-align: center; min-width: 38px; }
-  .modules-panel .pill.on { color: var(--green); border-color: var(--green); }
-  .mod .adds { grid-column: 2; color: var(--text-secondary); overflow-wrap: anywhere; }
-  @media (min-width: 768px) { .modules-panel { max-width: 1200px; margin: 12px auto 0; } .mod-list { grid-template-columns: 1fr 1fr; } }
-  .error-banner { margin: 12px 16px 0; padding: 10px 12px; border: 1px solid var(--red); background: var(--red-dim); color: var(--red); border-radius: var(--radius); }
-  main { padding: 4px 16px 16px; }
-  .section h2 { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.16em; color: var(--accent); margin: 18px 0 8px; text-transform: uppercase; }
-  .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
-  @media (min-width: 768px) {
-    .grid { grid-template-columns: 1fr 1fr; }
-    main, .top-inner { max-width: 1200px; margin: 0 auto; }
-  }
-  .empty { color: var(--text-secondary); padding: 6px 0; }
+  .toolbar { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
+  .toolbar .chips { margin: 0 -16px; padding: 0 16px 2px; }
+  .toolbar .chip { flex: 0 0 auto; }
+  .toolbar .chip .of { font-variant-numeric: tabular-nums; }
 
-  .card { background: var(--bg-panel); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-  .card.pending { border-color: var(--amber); }
-  .title { font-size: 16px; overflow-wrap: anywhere; }
-  .badges { display: flex; flex-wrap: wrap; gap: 6px; }
-  .badge { font-size: 11px; padding: 2px 8px; border: 1px solid var(--border-soft); border-radius: 10px; color: var(--text-secondary); }
-  .badge.bucket { color: var(--accent); border-color: var(--accent-dim); }
-  .badge.warm { color: var(--green); border-color: var(--green); }
-  .meta { color: var(--text-secondary); font-size: 13px; }
-  .network { color: var(--green); font-size: 13px; overflow-wrap: anywhere; }
-  .why { font-size: 13px; cursor: pointer; overflow-wrap: anywhere; }
-  .why .more { display: none; color: var(--text-secondary); margin-top: 4px; }
-  .why[aria-expanded="true"] .more { display: block; }
-  .links { display: flex; flex-wrap: wrap; gap: 0 18px; }
-  .links a, .links span { min-height: var(--tap); display: inline-flex; align-items: center; font-size: 14px; overflow-wrap: anywhere; }
-  .links span { color: var(--text-secondary); }
-  .status { font-size: 13px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; overflow-wrap: anywhere; }
-  .status.pending { color: var(--amber); }
-  .status.running { color: var(--accent); }
-  .status.done { color: var(--green); }
-  .status.failed, .status.permission { color: var(--red); }
-  .status.info { color: var(--text-secondary); }
-  .actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; margin-top: 4px; }
-  .btn { min-height: var(--tap); padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius); background: transparent; color: var(--accent); font-size: 14px; }
-  .btn.primary { background: var(--accent-soft); }
-  .btn.danger { color: var(--red); border-color: var(--red-dim); }
-
-  .backdrop { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,0.6); display: none; }
-  .backdrop.open { display: block; }
-  .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; max-width: 640px; margin: 0 auto; background: var(--bg-panel-alt); border-top: 1px solid var(--border); padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); transform: translateY(110%); transition: transform 0.15s ease-out; }
-  .sheet.open { transform: none; }
-  .sheet h3 { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.14em; color: var(--accent); margin-bottom: 10px; overflow-wrap: anywhere; }
-  .sheet textarea { width: 100%; min-height: 60px; padding: 8px; background: var(--bg); color: var(--text); border: 1px solid var(--border-soft); border-radius: var(--radius); font: inherit; font-size: 16px; }
-  .reasons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
-  .stack { display: flex; flex-direction: column; gap: 8px; }
-  .command { font-size: 13px; color: var(--text-secondary); user-select: all; overflow-wrap: anywhere; padding: 4px 0; }
-
-  .undo-stack { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; flex-direction: column; gap: 6px; padding: 8px 16px calc(8px + env(safe-area-inset-bottom)); pointer-events: none; }
-  .undo-bar { pointer-events: auto; width: 100%; max-width: 640px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-left: 12px; background: rgba(20,16,4,0.96); border: 1px solid var(--amber); border-radius: var(--radius); color: var(--amber); }
-  .undo-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .undo-bar .btn { color: var(--amber); border: 0; border-left: 1px solid var(--amber); border-radius: 0; flex: 0 0 auto; }
-  .toast { position: fixed; top: 12px; left: 16px; right: 16px; z-index: 30; max-width: 640px; margin: 0 auto; padding: 10px 12px; background: var(--bg-panel-alt); border: 1px solid var(--accent); border-radius: var(--radius); color: var(--text); overflow-wrap: anywhere; }
-  .card-head { display: flex; gap: 10px; align-items: flex-start; }
-  .score { flex: 0 0 auto; min-width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--accent-dim); border-radius: var(--radius); font-family: var(--font-display); font-size: 16px; color: var(--accent); }
-  .score.worth_a_look { color: var(--amber); border-color: var(--amber-dim); }
-  .score.low { color: var(--text-secondary); border-color: var(--border-soft); }
-  .score .lock { color: var(--red); font-size: 11px; margin-right: 2px; }
-  .band-head { width: 100%; display: flex; justify-content: space-between; align-items: center; min-height: var(--tap); margin: 14px 0 6px; padding: 0; border: 0; border-bottom: 1px solid var(--border-soft); background: transparent; color: var(--text); font-family: var(--font-display); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; }
+  #sections { display: flex; flex-direction: column; gap: 32px; padding-top: 24px; }
+  .section { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .section-title { display: flex; align-items: baseline; gap: 8px; font-size: var(--fs-title); font-weight: 600; letter-spacing: -0.01em; }
+  .section-title .of { font-size: var(--fs-small); font-weight: 400; color: var(--text-3); }
+  .band-head { display: flex; align-items: center; gap: 8px; width: 100%; min-height: var(--tap); padding: 0 4px; text-align: left;
+    font-size: var(--fs-small); color: var(--text-2); }
+  .band-head b { color: var(--text); font-weight: 600; }
+  .band-head .chev { margin-left: auto; width: 20px; height: 20px; transition: transform 200ms var(--ease); }
+  .band-head[aria-expanded="false"] .chev { transform: rotate(-90deg); }
   .band-head[aria-expanded="false"] + .grid { display: none; }
-  .badge.moved { color: var(--accent); border-color: var(--accent); }
-  .summary { font-size: 13px; color: var(--text); }
-  .pay.estimated { color: var(--amber); }
-  .chip-flag { font-size: 11px; padding: 1px 6px; margin-left: 6px; border: 1px solid var(--amber-dim); border-radius: 10px; color: var(--amber); }
-  .fitgap { font-size: 13px; overflow-wrap: anywhere; }
-  .fitgap b { color: var(--text-secondary); font-weight: normal; }
-  .whyrank { font-size: 13px; color: var(--text); overflow-wrap: anywhere; }
-  .breakdown { display: none; font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
-  .why[aria-expanded="true"] .breakdown { display: grid; grid-template-columns: 1fr auto auto auto; gap: 2px 10px; }
-  .breakdown .ev { grid-column: 1 / -1; color: var(--text-muted); margin-bottom: 4px; }
-  .move-hint { font-size: 12px; color: var(--amber); }
-  .top-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .rank-btn { min-height: var(--tap); padding: 0 12px; border: 1px solid var(--border); border-radius: 22px; background: transparent; color: var(--accent); font-size: 13px; white-space: nowrap; }
-  .rank-btn.dirty { color: var(--amber); border-color: var(--amber-dim); }
-  .bands-error { color: var(--red); font-size: 12px; min-height: 16px; margin: -8px 0 10px; }
-  .rank-conflict { border: 1px solid var(--amber); color: var(--amber); padding: 8px; margin-bottom: 10px; font-size: 13px; }
-  .rank-sheet { max-height: 85vh; overflow-y: auto; }
-  @media (min-width: 768px) {
-    .rank-sheet { left: auto; right: 0; top: 0; bottom: 0; width: 380px; max-width: 380px; max-height: none; border-top: 0; border-left: 1px solid var(--border); transform: translateX(110%); }
-    .rank-sheet.open { transform: none; }
-  }
-  .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-  .slider-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; margin-bottom: 10px; font-size: 13px; }
-  .slider-row input[type=range] { grid-column: 1 / -1; width: 100%; min-height: var(--tap); accent-color: var(--accent); }
-  .floor-row { display: grid; grid-template-columns: var(--tap) 1fr var(--tap); gap: 8px; margin: 6px 0 14px; }
-  .floor-row input { min-height: var(--tap); text-align: center; background: var(--bg); color: var(--text); border: 1px solid var(--border-soft); border-radius: var(--radius); font: inherit; font-size: 16px; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+
+  /* lead card */
+  .lead { gap: 10px; }
+  .lead.pending { box-shadow: inset 0 0 0 1px var(--warn); }
+  .lead-head { display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left; min-height: var(--tap); }
+  .lead-head:hover .role { color: var(--accent); }
+  .lead-head .titles { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .lead-head .chev { flex: 0 0 auto; width: 20px; height: 20px; color: var(--text-3); margin-top: 4px; }
+  .role { font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+  .company { font-size: var(--fs-small); color: var(--text-2); overflow-wrap: anywhere; }
+  .score { flex: 0 0 auto; min-width: 48px; height: 48px; padding: 0 6px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center;
+    gap: 2px; font-size: 20px; font-weight: 600; background: var(--accent-soft); color: var(--accent); }
+  .score.worth_a_look { background: var(--warn-soft); color: var(--warn); }
+  .score.low { background: var(--surface-2); color: var(--text-2); }
+  .score .lock { font-size: 11px; }
+  .meta { font-size: var(--fs-small); color: var(--text-2); overflow-wrap: anywhere; }
+  .pay.estimated { color: var(--warn); }
+  .meta .pill { margin-left: 6px; }
+  .note { font-size: var(--fs-small); color: var(--warn); }
+  .summary { font-size: 15px; color: var(--text); overflow-wrap: anywhere; }
+  .lead .summary, .lead .whyrank { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  .lead .network { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .network { font-size: var(--fs-small); color: var(--text-2); padding-left: 10px; box-shadow: inset 2px 0 0 var(--text-3); overflow-wrap: anywhere; }
+  .network.warm { color: var(--text); box-shadow: inset 2px 0 0 var(--good); }
+  .whyrank { font-size: var(--fs-small); color: var(--text-2); overflow-wrap: anywhere; }
+  .status { font-size: var(--fs-small); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; overflow-wrap: anywhere; }
+  .status.pending { color: var(--warn); }
+  .status.running { color: var(--accent); }
+  .status.done { color: var(--good); }
+  .status.failed, .status.permission { color: var(--danger); }
+  .status.info { color: var(--text-2); }
+  .status .btn { min-height: 40px; padding: 0 14px; font-size: var(--fs-small); }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 4px; }
+  .actions .btn { flex: 1 1 auto; min-width: 0; font-size: 15px; }
+  .actions .btn.ghost { flex: 0 0 auto; display: inline-flex; align-items: center; text-decoration: none; }
+  .move-hint { font-size: var(--fs-small); color: var(--warn); }
+
+  /* lead details sheet */
+  .detail-head { display: flex; align-items: flex-start; gap: 12px; }
+  .detail-head .titles { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .detail-head .role { font-size: var(--fs-title); letter-spacing: -0.01em; }
+  .fit { display: flex; flex-direction: column; gap: 2px; font-size: 15px; overflow-wrap: anywhere; }
+  .fit b { font-size: var(--fs-small); font-weight: 500; color: var(--text-2); }
+  .breakdown { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 4px 14px; font-size: var(--fs-small); color: var(--text-2); }
+  .breakdown span:nth-child(5n+2), .breakdown span:nth-child(5n+4) { color: var(--text); text-align: right; }
+  .breakdown span:nth-child(5n+3) { text-align: right; }
+  .breakdown .ev { grid-column: 1 / -1; color: var(--text-3); padding-bottom: 8px; box-shadow: 0 1px 0 var(--surface-2); margin-bottom: 4px; }
+  .bd-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 4px 14px; font-size: 12px; color: var(--text-3); }
+  .bd-head span:not(:first-child) { text-align: right; }
+  .links { display: flex; flex-wrap: wrap; gap: 8px; }
+  .links a { min-height: var(--tap); display: inline-flex; align-items: center; padding: 0 16px; border-radius: 24px; background: var(--surface-2);
+    color: var(--accent); text-decoration: none; font-size: 15px; overflow-wrap: anywhere; }
+  .links a:hover { background: var(--surface-3); }
+  .links span { min-height: var(--tap); display: inline-flex; align-items: center; font-size: var(--fs-small); color: var(--text-3); }
+
+  /* skip / help sheets */
+  .reasons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .reasons .chip { justify-content: center; text-align: center; }
+  .stack { display: flex; flex-direction: column; gap: 8px; }
+  .command { font-family: var(--font-mono); font-size: var(--fs-small); color: var(--text-2); background: var(--surface-2); border-radius: var(--radius-sm);
+    padding: 12px; user-select: all; overflow-wrap: anywhere; }
+
+  /* ranking settings */
+  .rank-conflict { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; margin: 0; }
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; }
+  .presets .chip:disabled { opacity: 1; cursor: default; color: var(--text-3); }
+  .presets .chip:disabled[aria-pressed="true"] { color: var(--text); }
+  #rank-sliders { display: flex; flex-direction: column; gap: 4px; }
+  .slider-row { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; font-size: var(--fs-small); color: var(--text-2); }
+  .slider-row span { color: var(--text); font-weight: 600; }
+  .slider-row input[type=range] { grid-column: 1 / -1; width: 100%; min-height: 40px; }
+  .num-label { font-size: var(--fs-small); color: var(--text-2); }
+  .floor-row { display: grid; grid-template-columns: var(--tap) minmax(0, 1fr) var(--tap); gap: 8px; }
+  .floor-row .btn { padding: 0; font-size: 22px; }
+  .floor-row input { min-height: var(--tap); text-align: center; background: var(--surface-2); border: 0; border-radius: var(--radius-sm); font-size: var(--fs-body); font-weight: 600; width: 100%; }
+  .bands-error { color: var(--danger); font-size: var(--fs-small); min-height: 18px; }
   .rank-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+  /* modules panel: which optional modules are on, and where to set each up */
+  .modules-panel { background: var(--surface); border-radius: var(--radius); margin-bottom: 8px; }
+  .modules-panel summary { min-height: var(--tap); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 4px 16px;
+    cursor: pointer; list-style: none; font-size: var(--fs-small); color: var(--text-2); }
+  .modules-panel summary::-webkit-details-marker { display: none; }
+  .modules-panel summary b { color: var(--text); font-weight: 600; margin-right: 4px; }
+  .modules-panel .pill.on { color: var(--good); }
+  .mod-note { margin: 0 16px 12px; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--warn-soft); color: var(--warn);
+    font-size: var(--fs-small); overflow-wrap: anywhere; }
+  .mod-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 0 16px 16px; }
+  .mod { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: baseline; font-size: var(--fs-small); }
+  .mod .adds { grid-column: 2; color: var(--text-2); overflow-wrap: anywhere; }
+
+  @media (min-width: 720px) {
+    .mod-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .toolbar { flex-direction: row; align-items: center; }
+    .toolbar .chips { flex: 1; margin: 0; padding: 0 0 2px; }
+    .toolbar .search { flex: 0 0 280px; }
+  }
+  @media (min-width: 1180px) {
+    .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
 </style>
 </head>
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="top-row">
-      <nav class="nav" aria-label="Pages"><a href="/jobs" aria-current="page">Jobs board</a></nav>
-      <button class="rank-btn" id="rank-btn" type="button" aria-haspopup="dialog" aria-controls="rank-sheet">Ranking: Balanced (default settings)</button>
-    </div>
-    <div class="chips" id="chips" role="toolbar" aria-label="Filter leads"></div>
-    <input class="search" id="search" type="search" placeholder="Search company or role" autocomplete="off" aria-label="Search company or role">
+    <nav class="nav" aria-label="Pages"><a href="/jobs" aria-current="page">Jobs board</a></nav>
+    <button class="rank-btn" id="rank-btn" type="button" aria-haspopup="dialog" aria-controls="rank-sheet">Ranking: Balanced (default settings)</button>
   </div>
 </header>
-<details class="modules-panel" id="modules-panel" open hidden></details>
-<div class="error-banner" id="error" role="alert" hidden></div>
-<main id="sections" aria-live="polite"></main>
+<div class="banner error" id="error" role="alert" hidden></div>
+<main>
+  <details class="modules-panel" id="modules-panel" open hidden></details>
+  <div class="toolbar">
+    <div class="chips hscroll" id="chips" role="toolbar" aria-label="Filter leads"></div>
+    <input class="search" id="search" type="search" placeholder="Search company or role" autocomplete="off" aria-label="Search company or role">
+  </div>
+  <div id="sections" aria-live="polite"></div>
+</main>
 
-<div class="undo-stack" id="undo-stack"></div>
-<div class="backdrop" id="backdrop"></div>
+<div class="snacks" id="undo-stack"></div>
+<div class="scrim" id="scrim" hidden></div>
 
-<div class="sheet" id="skip-sheet" role="dialog" aria-modal="true" aria-labelledby="skip-title">
-  <h3 id="skip-title">Skip — why?</h3>
-  <textarea id="skip-note" maxlength="500" placeholder="Optional note (type it first, then tap a reason)"></textarea>
-  <div class="reasons" id="skip-reasons"></div>
-  <button class="btn" id="skip-cancel" type="button" style="width:100%">Cancel</button>
+<div class="sheet" id="lead-sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="lead-title" hidden>
+  <div class="grab" aria-hidden="true"></div><div class="content" id="lead-content"></div>
 </div>
 
-<div class="sheet" id="help-sheet" role="dialog" aria-modal="true" aria-labelledby="help-title">
-  <h3 id="help-title">Need help</h3>
-  <div class="stack">
-    <button class="btn primary" id="help-prep" type="button">Draft prep pack</button>
-    <button class="btn" id="help-copy" type="button">Copy terminal command</button>
-    <div class="command" id="help-command"></div>
-    <button class="btn" id="help-cancel" type="button">Cancel</button>
+<div class="sheet" id="skip-sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="skip-title" hidden>
+  <div class="grab" aria-hidden="true"></div>
+  <div class="content">
+    <h2 class="hero" id="skip-title" style="font-size:var(--fs-title)">Skip — why?</h2>
+    <div class="field">
+      <label for="skip-note">Note (optional, type it first, then tap a reason)</label>
+      <textarea id="skip-note" maxlength="500" placeholder="What made this a no?"></textarea>
+    </div>
+    <div class="reasons" id="skip-reasons"></div>
+    <button class="btn" id="skip-cancel" type="button">Cancel</button>
   </div>
 </div>
 
-<div class="sheet rank-sheet" id="rank-sheet" role="dialog" aria-modal="true" aria-labelledby="rank-title">
-  <h3 id="rank-title">Ranking settings</h3>
-  <div class="rank-conflict" id="rank-conflict" hidden>Settings changed on another device. Your edits are kept here.
-    <button class="btn" id="rank-reload" type="button">Reload settings</button></div>
-  <div class="presets" id="rank-presets" role="group" aria-label="Preset"></div>
-  <div id="rank-sliders"></div>
-  <label for="rank-floor" class="meta">Annual base floor (verified pay below it caps the score)</label>
-  <div class="floor-row">
-    <button class="btn" id="rank-floor-minus" type="button" aria-label="Lower floor by $5,000">&minus;</button>
-    <input id="rank-floor" type="text" inputmode="numeric" autocomplete="off" aria-label="Annual base floor">
-    <button class="btn" id="rank-floor-plus" type="button" aria-label="Raise floor by $5,000">+</button>
+<div class="sheet" id="help-sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="help-title" hidden>
+  <div class="grab" aria-hidden="true"></div>
+  <div class="content">
+    <h2 class="hero" id="help-title" style="font-size:var(--fs-title)">Need help</h2>
+    <div class="stack">
+      <button class="btn primary" id="help-prep" type="button">Draft prep pack</button>
+      <button class="btn" id="help-copy" type="button">Copy terminal command</button>
+      <div class="command" id="help-command"></div>
+      <button class="btn ghost" id="help-cancel" type="button">Cancel</button>
+    </div>
   </div>
-  <label for="rank-apply" class="meta">"Apply now" starts at score</label>
-  <div class="floor-row">
-    <button class="btn" id="rank-apply-minus" type="button" aria-label="Lower by 5">&minus;</button>
-    <input id="rank-apply" type="text" inputmode="numeric" autocomplete="off" aria-label="Apply now threshold">
-    <button class="btn" id="rank-apply-plus" type="button" aria-label="Raise by 5">+</button>
-  </div>
-  <label for="rank-worth" class="meta">"Worth a look" starts at score</label>
-  <div class="floor-row">
-    <button class="btn" id="rank-worth-minus" type="button" aria-label="Lower by 5">&minus;</button>
-    <input id="rank-worth" type="text" inputmode="numeric" autocomplete="off" aria-label="Worth a look threshold">
-    <button class="btn" id="rank-worth-plus" type="button" aria-label="Raise by 5">+</button>
-  </div>
-  <div class="bands-error" id="rank-bands-error" role="alert"></div>
-  <div class="rank-actions">
-    <button class="btn" id="rank-revert" type="button">Revert</button>
-    <button class="btn" id="rank-close" type="button">Close</button>
-    <button class="btn primary" id="rank-save" type="button">Save</button>
+</div>
+
+<div class="sheet side" id="rank-sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="rank-title" hidden>
+  <div class="grab" aria-hidden="true"></div>
+  <div class="content">
+    <div class="sheet-head"><h2 class="hero" id="rank-title" style="font-size:var(--fs-title)">Ranking settings</h2></div>
+    <div class="banner warn rank-conflict" id="rank-conflict" hidden>Settings changed on another device. Your edits are kept here.
+      <button class="btn sm" id="rank-reload" type="button">Reload settings</button></div>
+    <section><h3>Preset</h3><div class="presets" id="rank-presets" role="group" aria-label="Preset"></div></section>
+    <section><h3>Weights</h3><div id="rank-sliders"></div></section>
+    <section>
+      <label for="rank-floor" class="num-label">Annual base floor (verified pay below it caps the score)</label>
+      <div class="floor-row">
+        <button class="btn" id="rank-floor-minus" type="button" aria-label="Lower floor by $5,000">&minus;</button>
+        <input id="rank-floor" type="text" inputmode="numeric" autocomplete="off" aria-label="Annual base floor">
+        <button class="btn" id="rank-floor-plus" type="button" aria-label="Raise floor by $5,000">+</button>
+      </div>
+      <label for="rank-apply" class="num-label">"Apply now" starts at score</label>
+      <div class="floor-row">
+        <button class="btn" id="rank-apply-minus" type="button" aria-label="Lower by 5">&minus;</button>
+        <input id="rank-apply" type="text" inputmode="numeric" autocomplete="off" aria-label="Apply now threshold">
+        <button class="btn" id="rank-apply-plus" type="button" aria-label="Raise by 5">+</button>
+      </div>
+      <label for="rank-worth" class="num-label">"Worth a look" starts at score</label>
+      <div class="floor-row">
+        <button class="btn" id="rank-worth-minus" type="button" aria-label="Lower by 5">&minus;</button>
+        <input id="rank-worth" type="text" inputmode="numeric" autocomplete="off" aria-label="Worth a look threshold">
+        <button class="btn" id="rank-worth-plus" type="button" aria-label="Raise by 5">+</button>
+      </div>
+      <div class="bands-error" id="rank-bands-error" role="alert"></div>
+    </section>
+    <div class="rank-actions">
+      <button class="btn ghost" id="rank-revert" type="button">Revert</button>
+      <button class="btn" id="rank-close" type="button">Close</button>
+      <button class="btn primary" id="rank-save" type="button">Save</button>
+    </div>
   </div>
 </div>
 
@@ -213,19 +234,21 @@
   'use strict';
   const L = window.JobsLogic;
   const R = window.JobsScoring;
-  const state = { leads: [], filter: null, query: '', expanded: new Set(), expired: new Set(), sheetLead: null, pollTimer: null,
+  const state = { leads: [], filter: null, query: '', expired: new Set(), sheetLead: null, pollTimer: null,
     busy: new Set(),            // lead ids with an action POST in flight (taps ignored, buttons disabled)
     seq: 0, floor: 0,           // request sequencing: a GET issued before the latest applied POST result is stale
     lastRefreshAt: -1e9,
     cards: new Map(), chipsSig: '', sectionsSig: '', undoSig: '', undoNodes: new Map(),
+    detailId: null, detailSig: '',   // lead shown in the details sheet, and what it was last built from
     config: JSON.parse(JSON.stringify(R.DEFAULT_CONFIG)), draft: null, usingDefaults: true, configLoaded: false,
-    leadsDir: null, dispatchEnabled: true, demo: false,
-    ranked: [], placed: new Map(), rankPending: false, collapsed: new Set(['low']) };
+    ranked: [], placed: new Map(), rankPending: false, collapsed: new Set(['low']),
+    leadsDir: null, dispatchEnabled: true, demo: false };
   state.draft = L.draftFromConfig(state.config);
   const $ = (id) => document.getElementById(id);
   let toastTimer = null;
   // Monotonic clock: elapsed time never depends on the phone's absolute clock.
   const now = () => performance.now();
+  const BAND_ACTIONS = ['move_up', 'move_down', 'reset_band'];   // shown in the details sheet, not on the card
 
   // ---- DOM helpers: text only ever goes in through textContent ----------------
   function el(tag, cls, text) {
@@ -244,6 +267,16 @@
     b.type = 'button';
     b.addEventListener('click', onClick);
     return b;
+  }
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  function chevron(cls) {
+    const s = document.createElementNS(SVG_NS, 'svg');
+    s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor');
+    s.setAttribute('stroke-width', '2'); s.setAttribute('aria-hidden', 'true'); s.setAttribute('class', cls || 'chev');
+    const p = document.createElementNS(SVG_NS, 'path');
+    p.setAttribute('d', cls === 'chev down' ? 'M6 9l6 6 6-6' : 'M9 18l6-6-6-6');
+    s.appendChild(p);
+    return s;
   }
   function toast(msg) {
     const t = $('toast');
@@ -332,7 +365,8 @@
     const box = $('chips');
     box.replaceChildren();
     L.SECTIONS.forEach((s) => {
-      const b = el('button', 'chip', s.label + ' ' + counts[s.key]);
+      const b = el('button', 'chip', s.label + ' ');
+      b.appendChild(el('span', 'of', String(counts[s.key])));
       b.type = 'button';
       b.setAttribute('aria-pressed', String(state.filter === s.key));
       b.addEventListener('click', () => { state.filter = state.filter === s.key ? null : s.key; render(); });
@@ -347,6 +381,7 @@
     return JSON.stringify(rest) + (state.busy.has(lead.lead_id) ? '|busy' : '') + (undo_remaining_s == null ? '|n' : '|u')
       + '|' + (r ? r.band + r.overridden + r.marked : '') + '|' + settingsDirty() + '|' + state.dispatchEnabled + state.demo;
   }
+  const actOpts = () => ({ settingsDirty: settingsDirty(), dispatchEnabled: state.dispatchEnabled, demo: state.demo });
   const placedOf = (it) => (it && it.score ? it : null);
   const shown = (lead) => L.shownFor(state.placed.get(lead.lead_id) || null, settingsDirty());
   // Rebuild only when the visible structure changed, so buttons are never replaced under a finger.
@@ -359,13 +394,18 @@
     // The score signature is part of the section signature so a re-score that keeps the order still reaches patchScore.
     const sig = JSON.stringify([settingsDirty(), [...state.collapsed], ...groups.map((g) => [g.key, g.label, bandsOf(g).map((b) =>
       [b.key, b.items.map((it) => it.lead.lead_id + ':' + leadSig(it.lead, placedOf(it)) + ':' + L.scoreSig(placedOf(it)))])])]);
-    if (sig === state.sectionsSig) return;
-    state.sectionsSig = sig;
+    if (sig !== state.sectionsSig) {
+      state.sectionsSig = sig;
+      buildSections(groups, bandsOf);
+    }
+    renderDetail();
+  }
+  function buildSections(groups, bandsOf) {
     const main = $('sections');
     const next = new Map();
     main.replaceChildren();
     const fillGrid = (grid, items) => {
-      if (!items.length) grid.appendChild(el('p', 'empty', 'Nothing here.'));
+      if (!items.length) grid.appendChild(el('p', 'empty-state', 'Nothing here.'));
       items.forEach((it) => {
         const l = it.lead;
         const r = placedOf(it);
@@ -383,21 +423,26 @@
     };
     groups.forEach((g) => {
       const sec = el('section', 'section');
-      sec.appendChild(el('h2', null, g.label + ' (' + g.leads.length + ')'));
+      const h = el('h2', 'section-title', g.label);
+      h.appendChild(el('span', 'of', String(g.leads.length)));
+      sec.appendChild(h);
       if (g.bands) {
         const items = new Map(g.bands.map((b) => [b.key, b.items]));
-        L.bandHeaders(g, state.collapsed).forEach((h) => {
-          const head = el('button', 'band-head', h.label + ' (' + h.count + ')');
+        L.bandHeaders(g, state.collapsed).forEach((hd) => {
+          const head = el('button', 'band-head');
+          head.appendChild(el('b', null, hd.label));
+          head.appendChild(el('span', null, String(hd.count)));
+          head.appendChild(chevron('chev down'));
           head.type = 'button';
-          head.dataset.band = h.key;
-          head.setAttribute('aria-expanded', String(h.expanded));
+          head.dataset.band = hd.key;
+          head.setAttribute('aria-expanded', String(hd.expanded));
           head.addEventListener('click', () => {
-            if (state.collapsed.has(h.key)) state.collapsed.delete(h.key); else state.collapsed.add(h.key);
+            if (state.collapsed.has(hd.key)) state.collapsed.delete(hd.key); else state.collapsed.add(hd.key);
             renderSections();
           });
           sec.appendChild(head);
           const grid = el('div', 'grid');
-          fillGrid(grid, items.get(h.key) || []);
+          fillGrid(grid, items.get(hd.key) || []);
           sec.appendChild(grid);
         });
       } else {
@@ -410,13 +455,14 @@
     state.cards = next;
   }
 
+  // Patches score badge, "why this rank" and the factor breakdown inside node (a card or the details sheet).
   function patchScore(node, m) {
     const badge = node.querySelector('[data-role=score]');
     if (badge) {
       const none = m.scoreText == null;
       badge.replaceChildren();
-      if (!none && m.gated) badge.appendChild(el('span', 'lock', '\uD83D\uDD12'));
-      badge.appendChild(document.createTextNode(none ? '\u2014' : (m.gated ? '\u2264' + m.scoreText : m.scoreText)));
+      if (!none && m.gated) badge.appendChild(el('span', 'lock', '🔒'));
+      badge.appendChild(document.createTextNode(none ? '—' : (m.gated ? '≤' + m.scoreText : m.scoreText)));
       badge.className = 'score' + (none ? ' low' : m.colorBand === 'apply_now' ? '' : ' ' + m.colorBand);
       badge.setAttribute('aria-label', none ? 'no score' : 'score ' + m.scoreText + (m.rank ? ', rank ' + m.rank : '') + (m.gated ? ', capped by pay floor' : ''));
     }
@@ -435,79 +481,152 @@
     }
   }
 
-  function card(lead, ranked) {
+  function titleBlock(lead, cls) {
     const t = lead.triage || {};
-    const d = lead.decision || {};
-    const m = L.cardModel(lead, ranked);
-    const c = el('article', 'card' + (d.pending ? ' pending' : ''));
-    const head = el('div', 'card-head');
-    const badge = el('span', 'score');
-    badge.dataset.role = 'score';
-    head.appendChild(badge);
-    head.appendChild(el('div', 'title', (t.company || 'Unknown company') + ' \u2014 ' + (t.role_title || 'Unknown role')));
-    c.appendChild(head);
-    if (m.note) c.appendChild(el('div', 'meta', m.note));
-    if (m.summary) c.appendChild(el('div', 'summary', m.summary));
+    const titles = el('div', 'titles');
+    const role = el('div', 'role', t.role_title || 'Unknown role');
+    if (cls) role.id = cls;
+    titles.append(role, el('div', 'company', t.company || 'Unknown company'));
+    return titles;
+  }
+  function scoreBadge() { const b = el('span', 'score'); b.dataset.role = 'score'; return b; }
+  function metaLine(m) {
     const meta = el('div', 'meta');
     meta.appendChild(el('span', null, m.meta));
     if (m.pay) {
-      meta.appendChild(el('span', 'pay ' + m.pay.kind, (m.meta ? ' \u00b7 ' : '') + m.pay.text));
-      if (m.pay.unspecified) meta.appendChild(el('span', 'chip-flag', 'comp unspecified'));
+      meta.appendChild(el('span', 'pay ' + m.pay.kind, (m.meta ? ' · ' : '') + m.pay.text));
+      if (m.pay.unspecified) meta.appendChild(el('span', 'pill warn', 'comp unspecified'));
     }
-    c.appendChild(meta);
+    return meta;
+  }
+  function badgesEl(lead, m) {
     const badges = el('div', 'badges');
-    L.badgesFor(lead).forEach((b) => badges.appendChild(el('span', 'badge' + (b.charAt(0) === '\u2191' ? ' warm' : ''), b)));
-    if (m.movedByYou) badges.appendChild(el('span', 'badge moved', 'moved by you'));
-    if (badges.childNodes.length) c.appendChild(badges);
+    L.badgesFor(lead).forEach((b) => badges.appendChild(el('span', 'pill' + (b.charAt(0) === '↑' ? ' good' : ''), b)));
+    if (m.movedByYou) badges.appendChild(el('span', 'pill accent', 'moved by you'));
+    return badges.childNodes.length ? badges : null;
+  }
+  function networkEl(lead) {
     const net = L.networkLine(lead);
-    if (net) c.appendChild(el('div', 'network', net));
-    if (m.yourNote) { const n = el('div', 'fitgap'); n.appendChild(el('b', null, 'Your note: ')); n.appendChild(document.createTextNode(m.yourNote)); c.appendChild(n); }
-    if (m.fit) { const f = el('div', 'fitgap'); f.appendChild(el('b', null, ranked ? 'Why you fit: ' : 'Old triage: ')); f.appendChild(document.createTextNode(m.fit)); c.appendChild(f); }
-    if (m.gap) { const g = el('div', 'fitgap'); g.appendChild(el('b', null, 'Main gap: ')); g.appendChild(document.createTextNode(m.gap)); c.appendChild(g); }
-    const why = el('div', 'why');
-    why.setAttribute('role', 'button');
-    why.tabIndex = 0;
-    const wr = el('div', 'whyrank');
-    wr.dataset.role = 'whyrank';
-    why.appendChild(wr);
-    const bd = el('div', 'breakdown');
-    bd.dataset.role = 'breakdown';
-    why.appendChild(bd);
-    why.setAttribute('aria-expanded', String(state.expanded.has(lead.lead_id)));
-    const toggle = () => {
-      if (state.expanded.has(lead.lead_id)) state.expanded.delete(lead.lead_id); else state.expanded.add(lead.lead_id);
-      why.setAttribute('aria-expanded', String(state.expanded.has(lead.lead_id)));
-    };
-    why.addEventListener('click', toggle);
-    why.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
-    if (ranked) c.appendChild(why);
-    patchScore(c, m);
+    return net ? el('div', 'network' + (L.warmCurrentContact(lead) ? ' warm' : ''), net) : null;
+  }
+  function actionButtons(lead, acts, box) {
+    let hint = null;
+    acts.forEach((a) => {
+      const cls = a.action === 'applied' ? 'primary' : (a.action === 'skip' ? 'danger' : '');
+      const b = button(a.label, cls, () => onAction(lead, a));
+      if (state.busy.has(lead.lead_id) || a.disabled) b.disabled = true;
+      if (a.disabled && !hint) hint = a.hint;
+      box.appendChild(b);
+    });
+    return hint;
+  }
 
-    const links = el('div', 'links');
-    const post = L.postingLink(lead);
-    links.appendChild(post.href ? extLink(post.href, post.label) : el('span', null, post.label));
-    const eng = L.engageLink(lead);
-    if (eng) links.appendChild(extLink(eng.href, eng.label));
-    c.appendChild(links);
+  // Card: the decision at a glance (score, role, where/pay, network, why) plus the main actions.
+  // Everything else (fit, gap, your note, factor breakdown, links, band moves) is one tap away in the details sheet.
+  function card(lead, ranked) {
+    const d = lead.decision || {};
+    const m = L.cardModel(lead, ranked);
+    const c = el('article', 'card lead' + (d.pending ? ' pending' : ''));
+    const head = el('button', 'lead-head');
+    head.type = 'button';
+    head.setAttribute('aria-haspopup', 'dialog');
+    head.append(scoreBadge(), titleBlock(lead), chevron());
+    head.addEventListener('click', () => openDetail(lead.lead_id));
+    c.appendChild(head);
+    if (m.note) c.appendChild(el('div', 'note', m.note));
+    c.appendChild(metaLine(m));
+    if (m.summary) c.appendChild(el('div', 'summary', m.summary));
+    const badges = badgesEl(lead, m);
+    if (badges) c.appendChild(badges);
+    const net = networkEl(lead);
+    if (net) c.appendChild(net);
+    if (ranked) { const wr = el('div', 'whyrank'); wr.dataset.role = 'whyrank'; c.appendChild(wr); }
+    patchScore(c, m);
 
     const st = L.statusLine(lead, L.remainingSeconds(lead, now()));
     if (st) c.appendChild(statusEl(lead, st));
 
-    const acts = L.actionsFor(lead, ranked, { settingsDirty: settingsDirty(), dispatchEnabled: state.dispatchEnabled, demo: state.demo });
-    if (acts.length) {
-      const row = el('div', 'actions');
-      let hint = null;
-      acts.forEach((a) => {
-        const cls = a.action === 'applied' ? 'primary' : (a.action === 'skip' ? 'danger' : '');
-        const b = button(a.label, cls, () => onAction(lead, a));
-        if (state.busy.has(lead.lead_id) || a.disabled) b.disabled = true;
-        if (a.disabled && !hint) hint = a.hint;
-        row.appendChild(b);
-      });
-      c.appendChild(row);
-      if (hint) c.appendChild(el('div', 'move-hint', hint));
-    }
+    const acts = L.actionsFor(lead, ranked, actOpts()).filter((a) => !BAND_ACTIONS.includes(a.action));
+    const row = el('div', 'actions');
+    actionButtons(lead, acts, row);
+    const pl = L.postingLink(lead);   // the step right before "Applied", so it stays on the card
+    if (pl.href) { const a = extLink(pl.href, 'Posting ↗'); a.className = 'btn ghost'; row.appendChild(a); }
+    if (row.childNodes.length) c.appendChild(row);
     return c;
+  }
+
+  // Details sheet: the full lead. Rebuilt only when that lead's content or score changes.
+  function renderDetail() {
+    if (!state.detailId) return;
+    const lead = state.leads.find((l) => l.lead_id === state.detailId);
+    if (!lead) { closeSheets(); return; }
+    const ranked = state.placed.get(lead.lead_id) || null;
+    const sig = leadSig(lead, ranked) + '#' + L.scoreSig(ranked);
+    if (sig === state.detailSig) return;
+    state.detailSig = sig;
+    const box = $('lead-content');
+    box.replaceChildren();
+    const m = L.cardModel(lead, ranked);
+    const head = el('div', 'detail-head');
+    head.append(scoreBadge(), titleBlock(lead, 'lead-title'));
+    const x = el('button', 'icon-btn');
+    x.type = 'button'; x.setAttribute('aria-label', 'Close details');
+    x.textContent = '✕';
+    x.addEventListener('click', closeSheets);
+    head.appendChild(x);
+    box.appendChild(head);
+
+    const top = el('section');
+    if (m.note) top.appendChild(el('div', 'note', m.note));
+    top.appendChild(metaLine(m));
+    const badges = badgesEl(lead, m);
+    if (badges) top.appendChild(badges);
+    if (m.summary) top.appendChild(el('div', 'summary', m.summary));
+    const net = networkEl(lead);
+    if (net) top.appendChild(net);
+    const st = L.statusLine(lead, L.remainingSeconds(lead, now()));
+    if (st) top.appendChild(statusEl(lead, st));
+    box.appendChild(top);
+
+    const fitSec = el('section');
+    const fit = (label, text) => { const f = el('div', 'fit'); f.appendChild(el('b', null, label)); f.appendChild(document.createTextNode(text)); fitSec.appendChild(f); };
+    if (m.yourNote) fit('Your note', m.yourNote);
+    if (m.fit) fit(ranked ? 'Why you fit' : 'Old triage', m.fit);
+    if (m.gap) fit('Main gap', m.gap);
+    if (fitSec.childNodes.length) box.appendChild(fitSec);
+
+    if (ranked) {
+      const why = el('section');
+      const wr = el('div', 'summary'); wr.dataset.role = 'whyrank'; why.appendChild(wr);
+      const bh = el('div', 'bd-head');
+      ['Factor', 'Score', 'Weight', 'Points'].forEach((t) => bh.appendChild(el('span', null, t)));
+      why.appendChild(bh);
+      const bd = el('div', 'breakdown'); bd.dataset.role = 'breakdown'; why.appendChild(bd);
+      box.appendChild(why);
+    }
+    patchScore(box, m);
+
+    const links = el('div', 'links');
+    const pl = L.postingLink(lead);
+    links.appendChild(pl.href ? extLink(pl.href, pl.label) : el('span', null, pl.label));
+    const eng = L.engageLink(lead);
+    if (eng) links.appendChild(extLink(eng.href, eng.label));
+    box.appendChild(links);
+
+    const acts = L.actionsFor(lead, ranked, actOpts());
+    if (acts.length) {
+      const sec = el('section');
+      const row = el('div', 'actions');
+      const hint = actionButtons(lead, acts, row);
+      sec.appendChild(row);
+      if (hint) sec.appendChild(el('div', 'move-hint', hint));
+      box.appendChild(sec);
+    }
+  }
+  function openDetail(id) {
+    state.detailId = id; state.detailSig = '';
+    renderDetail();
+    openSheet('lead-sheet', state.leads.find((l) => l.lead_id === id) || null);
   }
 
   function statusEl(lead, st) {
@@ -529,15 +648,17 @@
       const box = $('undo-stack');
       box.replaceChildren();
       bars.forEach((u) => {
-        const bar = el('div', 'undo-bar');
+        const bar = el('div', 'snack');
+        bar.setAttribute('role', 'status');
         const label = el('span', null, '');
         bar.appendChild(label);
         bar.appendChild(button('Undo', '', () => undo(u.lead_id)));
         box.appendChild(bar);
         state.undoNodes.set(u.lead_id, label);
       });
+      document.body.classList.toggle('has-snacks', bars.length > 0);
     }
-    bars.forEach((u) => { state.undoNodes.get(u.lead_id).textContent = u.label + ' \u00b7 ' + L.formatCountdown(u.remaining); });
+    bars.forEach((u) => { state.undoNodes.get(u.lead_id).textContent = u.label + ' · ' + L.formatCountdown(u.remaining); });
   }
 
   // Once a second: undo bars and pending status lines only (no full re-render, so scroll/expansion survive).
@@ -554,6 +675,9 @@
   }
 
   // ---- sheets & actions ---------------------------------------------------------
+  // One sheet at a time: unhide, then add .on next frame so it slides; hide after the slide out.
+  const SHEETS = ['lead-sheet', 'skip-sheet', 'help-sheet', 'rank-sheet'];
+  const sheetUi = { last: null, raf: 0, hideTimer: 0 };
   function onAction(lead, a) {
     const action = a.action;
     if (action === 'skip' && a.reason) return send(lead, { action: 'skip', reason: a.reason, note: 'confirmed closed on the Jobs tab', shown: shown(lead) });
@@ -562,25 +686,45 @@
     send(lead, { action: action, shown: shown(lead) });   // move_up, move_down, reset_band, still_open, applied: the Undo bar covers mistakes
   }
   function openSheet(id, lead) {
-    state.sheetLead = lead;
-    const company = (lead.triage || {}).company || 'this lead';
+    if (lead) state.sheetLead = lead;
+    const company = lead ? ((lead.triage || {}).company || 'this lead') : '';
     if (id === 'skip-sheet') { $('skip-title').textContent = 'Skip ' + company + ' — why?'; $('skip-note').value = ''; }
     if (id === 'help-sheet') { $('help-title').textContent = 'Need help — ' + company; $('help-command').textContent = L.terminalCommand(lead, state.leadsDir); }
-    $('backdrop').classList.add('open');
-    $(id).classList.add('open');
+    if (id !== 'lead-sheet') state.detailId = null;
+    const open = SHEETS.find((s) => !$(s).hidden);
+    if (!open) sheetUi.last = document.activeElement;
+    SHEETS.forEach((s) => { if (s !== id) { $(s).classList.remove('on'); $(s).hidden = true; } });
+    clearTimeout(sheetUi.hideTimer);
+    cancelAnimationFrame(sheetUi.raf);
+    $('scrim').classList.toggle('light', $(id).classList.contains('side'));
+    $('scrim').hidden = false; $(id).hidden = false;
+    if (open && open !== id) $(id).classList.add('on');           // swapping sheets: no second slide
+    sheetUi.raf = requestAnimationFrame(() => { $('scrim').classList.add('on'); $(id).classList.add('on'); });
+    setTimeout(() => $(id).focus({ preventScroll: true }), 50);
   }
   function closeSheets() {
-    ['skip-sheet', 'help-sheet', 'rank-sheet'].forEach((id) => $(id).classList.remove('open'));
-    $('backdrop').classList.remove('open');
+    state.detailId = null; state.detailSig = '';
+    if (SHEETS.every((s) => $(s).hidden)) return;
+    cancelAnimationFrame(sheetUi.raf);
+    $('scrim').classList.remove('on');
+    SHEETS.forEach((s) => $(s).classList.remove('on'));
+    const done = () => { $('scrim').hidden = true; SHEETS.forEach((s) => { $(s).hidden = true; }); };
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) done(); else sheetUi.hideTimer = setTimeout(done, 250);
+    if (sheetUi.last && sheetUi.last.focus && document.contains(sheetUi.last)) sheetUi.last.focus({ preventScroll: true });
   }
   function buildSkipReasons() {
     const box = $('skip-reasons');
-    L.SKIP_REASONS.forEach((r) => box.appendChild(button(r.label, '', () => {
-      const lead = state.sheetLead;
-      if (!lead) return;
-      const note = $('skip-note').value.trim();
-      send(lead, { action: 'skip', reason: r.key, note: note || null, shown: shown(lead) });
-    })));
+    L.SKIP_REASONS.forEach((r) => {
+      const b = el('button', 'chip', r.label);
+      b.type = 'button';
+      b.addEventListener('click', () => {
+        const lead = state.sheetLead;
+        if (!lead) return;
+        const note = $('skip-note').value.trim();
+        send(lead, { action: 'skip', reason: r.key, note: note || null, shown: shown(lead) });
+      });
+      box.appendChild(b);
+    });
   }
   // Plain http over a private network is not a secure context: navigator.clipboard is missing on a phone.
   function copyText(text) {
@@ -612,7 +756,7 @@
       if (r.warning) toast(r.warning);
     } catch (e) {
       state.usingDefaults = true;      // keep scoring with the embedded defaults; never an empty board
-      toast('Ranking settings unavailable \u2014 using default settings (' + e.message + ')');
+      toast('Ranking settings unavailable — using default settings (' + e.message + ')');
     }
     $('rank-conflict').hidden = true;
     renderDrawer(); render();
@@ -620,6 +764,7 @@
   function renderRankButton() {
     const b = $('rank-btn');
     b.textContent = L.rankButtonText({ draft: state.draft, config: state.config, usingDefaults: state.usingDefaults, dirty: settingsDirty() });
+    b.title = b.textContent;
     b.classList.toggle('dirty', settingsDirty());
   }
   window.renderRankButton = renderRankButton;
@@ -669,7 +814,7 @@
     if (document.activeElement !== $('rank-worth')) $('rank-worth').value = String(state.draft.bands.worth_a_look_min);
     const problem = L.bandsProblem(state.draft, state.config.compensation_settings.hard_gate_clamp_ceiling);
     const zeroWeights = Object.values(state.draft.weights).reduce((a, b) => a + (Number(b) || 0), 0) <= 0;
-    $('rank-bands-error').textContent = problem || (zeroWeights ? 'Set at least one weight above 0' : (state.configLoaded ? '' : 'Settings not loaded \u2014 changes preview only'));
+    $('rank-bands-error').textContent = problem || (zeroWeights ? 'Set at least one weight above 0' : (state.configLoaded ? '' : 'Settings not loaded — changes preview only'));
     $('rank-save').disabled = !!problem || zeroWeights || !state.configLoaded;
     renderRankButton();
   }
@@ -691,7 +836,7 @@
   });
   $('rank-revert').addEventListener('click', () => { state.draft = L.draftFromConfig(state.config); renderDrawer(); scheduleRerank(); });
   $('rank-reload').addEventListener('click', () => { loadConfig(); });   // explicit: discards the edits
-  $('rank-btn').addEventListener('click', () => { $('rank-sheet').classList.add('open'); $('backdrop').classList.add('open'); });
+  $('rank-btn').addEventListener('click', () => openSheet('rank-sheet'));
   $('rank-close').addEventListener('click', closeSheets);
   $('rank-save').addEventListener('click', async () => {
     const body = { expected_version: state.config.version, active_preset: L.presetFor(state.draft, state.config.presets),
@@ -708,23 +853,6 @@
     }
   });
 
-  // ---- wiring -------------------------------------------------------------------
-  buildSkipReasons();
-  $('skip-cancel').addEventListener('click', closeSheets);
-  $('help-cancel').addEventListener('click', closeSheets);
-  $('backdrop').addEventListener('click', closeSheets);
-  $('help-prep').addEventListener('click', () => { if (state.sheetLead) send(state.sheetLead, { action: 'prep', shown: shown(state.sheetLead) }); });
-  $('help-copy').addEventListener('click', () => {
-    const lead = state.sheetLead;
-    if (!lead) return;
-    copyText(L.terminalCommand(lead, state.leadsDir)); // synchronously inside the tap, before any await
-    send(lead, { action: 'terminal', shown: shown(lead) });
-  });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheets(); });
-  $('search').addEventListener('input', (e) => { state.query = e.target.value; renderSections(); });
-  window.addEventListener('focus', refreshIfStale);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshIfStale(); });
-  setInterval(tick, 1000);
   // ---- modules panel ------------------------------------------------------------
   async function loadModules() {
     let health = null;
@@ -732,7 +860,8 @@
     const p = L.modulesPanel(health);
     const box = $('modules-panel');
     box.replaceChildren();
-    const sum = el('summary', null, 'Modules');
+    const sum = el('summary');
+    sum.appendChild(el('b', null, 'Modules'));
     p.items.forEach((m) => { const pill = el('span', 'pill' + (m.enabled ? ' on' : ''), m.enabled ? 'on' : 'off'); pill.title = m.label; sum.appendChild(pill); });
     box.appendChild(sum);
     if (p.note) box.appendChild(el('div', 'mod-note', p.note));
@@ -751,6 +880,23 @@
     box.hidden = false;
   }
 
+  // ---- wiring -------------------------------------------------------------------
+  buildSkipReasons();
+  $('skip-cancel').addEventListener('click', closeSheets);
+  $('help-cancel').addEventListener('click', closeSheets);
+  $('scrim').addEventListener('click', closeSheets);
+  $('help-prep').addEventListener('click', () => { if (state.sheetLead) send(state.sheetLead, { action: 'prep', shown: shown(state.sheetLead) }); });
+  $('help-copy').addEventListener('click', () => {
+    const lead = state.sheetLead;
+    if (!lead) return;
+    copyText(L.terminalCommand(lead, state.leadsDir)); // synchronously inside the tap, before any await
+    send(lead, { action: 'terminal', shown: shown(lead) });
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheets(); });
+  $('search').addEventListener('input', (e) => { state.query = e.target.value; renderSections(); });
+  window.addEventListener('focus', refreshIfStale);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshIfStale(); });
+  setInterval(tick, 1000);
   renderDrawer();
   refresh();
   loadConfig();

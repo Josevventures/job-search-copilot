@@ -107,7 +107,9 @@
     "triage_error": null,
     "batch_id": "sample-batch",
     "triaged_at": "2026-10-15T09:00:00+00:00",
-    "route": "board"
+    "route": "board",
+    "possible_duplicate_of": null,
+    "possible_duplicate_note": null
   },
   "decision": {
     "decision": null,

@@ -103,7 +103,7 @@ test('actionsFor: unsaved ranking settings disable moves and Reset with a hint',
 
 test('actionsFor: Closed? cards offer Confirm closed and Still open', () => {
   assert.deepEqual(L.actionsFor(v2({ triage: { route: 'closed' } }), null), [
-    { action: 'skip', label: 'Confirm closed', reason: 'closed_stale' },
+    { action: 'skip', label: 'Confirm closed', reason: 'closed_stale', note: 'confirmed closed on the board' },
     { action: 'still_open', label: 'Still open' }]);
 });
 
@@ -270,9 +270,10 @@ test('stampLeads and replaceLead record when each lead arrived', () => {
 
 test('skip reason keys match the backend', () => {
   assert.deepEqual(L.SKIP_REASONS.map((r) => r.key),
-    ['wrong_level', 'wrong_function', 'location', 'pay', 'company_industry', 'closed_stale', 'not_interested']);
+    ['wrong_level', 'wrong_function', 'location', 'pay', 'company_industry', 'closed_stale', 'not_interested',
+      'duplicate']);
   assert.deepEqual(L.SKIP_REASONS.map((r) => r.label), ['Wrong level', 'Wrong function', 'Location', 'Pay',
-    'Company / industry', 'Closed / stale', 'Not interested']);
+    'Company / industry', 'Closed / stale', 'Not interested', 'Duplicate / already applied']);
 });
 
 test('extracting reads the form, counts as active, and prep never offers Grant', () => {
@@ -409,4 +410,105 @@ test('modulesPanel: all five modules with their state, setup links, and the demo
   const serve = L.modulesPanel({ demo: false, modules: {} });
   assert.equal(serve.note, null);
   assert.ok(serve.items.every((m) => m.enabled === false));
+});
+
+// ---- 2026-10-29: duplicates and the Focus view --------------------------------------------------------------
+test('sameCompany: aliases and containment match; different companies never do', () => {
+  assert.ok(L.sameCompany('Civic Growth Fund for Lakeport', 'Civic Partnership for Lakeport (Civic Growth Fund)'));
+  assert.ok(L.sameCompany('Stonegate Health', 'Stonegate Health (Stonegate Ventures)'));
+  assert.ok(L.sameCompany('Quillfeather Games', 'quillfeather games, inc.'));
+  assert.ok(!L.sameCompany('Harborline Bank', 'Cobaltwing'));
+  assert.ok(!L.sameCompany('', 'Acme'));
+});
+
+test('a possible duplicate shows a badge and a one-click Skip as duplicate', () => {
+  const keep = v2({ lead_id: 'aaaaaaaaaaa1', decision: { decision: 'applied' },
+    triage: { company: 'Quillfeather Games', role_title: 'Associate Rotational Program (Summer 2027)' } });
+  const dup = v2({ lead_id: 'aaaaaaaaaaa2', triage: { company: 'Quillfeather Games', role_title: 'Associate Rotational Program - Summer 2027',
+    possible_duplicate_of: 'aaaaaaaaaaa1', possible_duplicate_note: 'stored note' } });
+  assert.equal(L.duplicateBadge(dup, [keep, dup]), 'Possible duplicate of Quillfeather Games — Associate Rotational Program (Summer 2027) (applied)');
+  assert.equal(L.duplicateBadge(dup, [dup]), 'Possible duplicate of stored note');   // target no longer loaded
+  assert.equal(L.duplicateBadge(keep, [keep, dup]), null);
+  const acts = L.actionsFor(dup, null, { leads: [keep, dup] });
+  const one = acts.find((a) => a.label === 'Skip as duplicate');
+  assert.deepEqual({ ...one }, { action: 'skip', label: 'Skip as duplicate', reason: 'duplicate', duplicate_of: 'aaaaaaaaaaa1',
+    note: 'possible duplicate flagged at intake' });
+  assert.equal(acts.at(-1).label, 'Skip');                    // the plain Skip stays last
+  assert.ok(!L.actionsFor(v2(), null, { leads: [] }).some((a) => a.reason === 'duplicate'));
+  const self = v2({ lead_id: 'aaaaaaaaaaa3', triage: { possible_duplicate_of: 'aaaaaaaaaaa3' } });
+  assert.equal(L.possibleDuplicate(self, [self]), null);
+});
+
+test('sameCompanyLeads: picker lists other same-company leads, flagged then applied first, never itself', () => {
+  const me = v2({ lead_id: 'bbbbbbbbbbb1', triage: { company: 'Westfall Ridge Capital', role_title: 'Associate (investment team, NYC)',
+    possible_duplicate_of: 'bbbbbbbbbbb3' } });
+  const applied = v2({ lead_id: 'bbbbbbbbbbb2', decision: { decision: 'applied' }, triage: { company: 'Westfall Ridge Capital', role_title: 'Analyst' } });
+  const flagged = v2({ lead_id: 'bbbbbbbbbbb3', triage: { company: 'Westfall Ridge Capital', role_title: 'Investment Associate' } });
+  const goingAway = v2({ lead_id: 'bbbbbbbbbbb4', decision: { pending: pending('skip') }, triage: { company: 'Westfall Ridge Capital' } });
+  const other = v2({ lead_id: 'bbbbbbbbbbb5', triage: { company: 'Cobaltwing' } });
+  const out = L.sameCompanyLeads([me, applied, flagged, goingAway, other], me);
+  assert.deepEqual(out.map((o) => o.lead_id), ['bbbbbbbbbbb3', 'bbbbbbbbbbb2']);
+  assert.equal(out[1].applied, true);
+});
+
+const focusBoard = () => {
+  const leads = G.synthetic_board.leads.map((l) => v2({ lead_id: l.lead_id, triage: l.triage }));
+  return { leads, ranked: S.rankLeads(leads, G.configs.balanced, GNOW) };
+};
+const factor = (it, k) => it.score.factors.find((f) => f.key === k).score;
+
+test('Focus: sorts the board by one factor (ties by composite), flat, with that factor on each card', () => {
+  const { leads, ranked } = focusBoard();
+  assert.deepEqual(L.FOCUS_OPTIONS.map((f) => f.label), ['Default ranking', 'Role fit', 'Domain', 'Odds', 'Pay', 'Location', 'Freshness']);
+  for (const key of ['role_fit', 'domain', 'odds', 'comp', 'location', 'freshness']) {
+    const g = L.groupLeads(leads, null, '', ranked, G.configs.balanced.bands, { key, top10: false })[0];
+    assert.equal(g.bands, undefined);
+    assert.equal(g.items.length, ranked.length);
+    for (let i = 1; i < g.items.length; i += 1) {
+      const a = g.items[i - 1];
+      const b = g.items[i];
+      assert.ok(factor(a, key) > factor(b, key) || (factor(a, key) === factor(b, key) && a.score.composite >= b.score.composite), key);
+    }
+    const m = L.cardModel(g.items[0].lead, g.items[0], key);
+    assert.equal(m.focus.score, Math.round(factor(g.items[0], key)));
+    assert.equal(typeof m.focus.evidence, 'string');
+  }
+  const def = L.groupLeads(leads, null, '', ranked, G.configs.balanced.bands, { key: '', top10: false })[0];
+  assert.ok(def.bands && !def.items);
+  assert.equal(L.cardModel(def.leads[0], def.bands[0].items[0]).focus, null);
+});
+
+test('Focus: Top 10 only trims either order; unknown keys fall back to the default', () => {
+  const base = focusBoard();
+  const many = [];
+  for (let i = 0; i < 3; i += 1) base.leads.forEach((l) => many.push({ ...l, lead_id: l.lead_id.slice(0, 10) + i + i }));
+  const ranked = S.rankLeads(many, G.configs.balanced, GNOW);
+  assert.ok(ranked.length > 10);
+  const f = L.groupLeads(many, null, '', ranked, G.configs.balanced.bands, { key: 'odds', top10: true })[0];
+  assert.equal(f.items.length, 10);
+  assert.equal(f.total, ranked.length);
+  const d = L.groupLeads(many, null, '', ranked, G.configs.balanced.bands, { key: '', top10: true })[0];
+  assert.equal(d.leads.length, 10);
+  assert.deepEqual(L.normalizeFocus({ key: 'bogus', top10: 'yes' }), { key: '', top10: false });
+});
+
+test('Focus: view-only. Band moves are hidden while a focus is on; nothing touches the config', () => {
+  const { leads, ranked } = focusBoard();
+  const cfg = JSON.parse(JSON.stringify(G.configs.balanced));
+  const before = JSON.stringify(cfg);
+  const g = L.groupLeads(leads, null, '', ranked, cfg.bands, { key: 'role_fit', top10: true })[0];
+  assert.equal(JSON.stringify(cfg), before);
+  const it = g.items.find((x) => S.stepBand(x.band, +1) || S.stepBand(x.band, -1));
+  const withFocus = L.actionsFor(it.lead, it, { focus: true }).map((a) => a.action);
+  const without = L.actionsFor(it.lead, it, {}).map((a) => a.action);
+  assert.ok(without.some((a) => ['move_up', 'move_down'].includes(a)));
+  assert.ok(!withFocus.some((a) => ['move_up', 'move_down', 'reset_band'].includes(a)));
+  assert.ok(withFocus.includes('applied') && withFocus.includes('skip'));
+});
+
+test('Focus preference round-trips and survives junk', () => {
+  assert.deepEqual(L.parseFocusPref(L.focusPrefString({ key: 'comp', top10: true })), { key: 'comp', top10: true });
+  assert.deepEqual(L.parseFocusPref(null), { key: '', top10: false });
+  assert.deepEqual(L.parseFocusPref('{not json'), { key: '', top10: false });
+  assert.equal(L.FOCUS_STORAGE_KEY, 'jobs-board.focus');
 });

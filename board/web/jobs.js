@@ -25,7 +25,22 @@
     { key: 'company_industry', label: 'Company / industry' },
     { key: 'closed_stale', label: 'Closed / stale' },
     { key: 'not_interested', label: 'Not interested' },
+    { key: 'duplicate', label: 'Duplicate / already applied' },
   ];
+  const DUPLICATE = 'duplicate';
+  // Focus view (2026-10-29): view-only re-sort of the ranked board by one factor. Never writes settings or bands.
+  const FOCUS_OPTIONS = [
+    { key: '', label: 'Default ranking' },
+    { key: 'role_fit', label: 'Role fit' },
+    { key: 'domain', label: 'Domain' },
+    { key: 'odds', label: 'Odds' },
+    { key: 'comp', label: 'Pay' },
+    { key: 'location', label: 'Location' },
+    { key: 'freshness', label: 'Freshness' },
+  ];
+  const FOCUS_KEYS = FOCUS_OPTIONS.map((f) => f.key);
+  const FOCUS_STORAGE_KEY = 'jobs-board.focus';
+  const TOP_N = 10;
   const ACTION_LABELS = { skip: 'Skipped', applied: 'Applied', prep: 'Prep pack', terminal: 'Terminal',
     move_up: 'Moved up', move_down: 'Moved down', reset_band: 'Band reset', still_open: 'Marked still open' };
   const MOVE_BLOCKED_HINT = 'Save or revert your ranking changes to move cards';
@@ -144,26 +159,74 @@
     return js.kind === 'terminal' && js.state === 'in_progress';
   }
 
+  // ---- duplicates (2026-10-29). Company matching mirrors skills/job-apply-fleet/lib/dedupe.py. ----
+  const CO_STOP = new Set(['the', 'a', 'an', 'of', 'for', 'and', 'at', 'in', 'to', 'with', 'on', 'by']);
+  const CO_SUFFIX = new Set(['inc', 'llc', 'ltd', 'lp', 'llp', 'co', 'corp', 'corporation', 'company', 'plc', 'gmbh',
+    'careers', 'jobs']);
+  function words(s) { return String(s == null ? '' : s).toLowerCase().replace(/&/g, ' and ').match(/[a-z0-9]+/g) || []; }
+  const coWords = (s) => words(s).filter((w) => !CO_STOP.has(w) && !CO_SUFFIX.has(w));
+  const coCore = (s) => coWords(String(s == null ? '' : s).replace(/\([^)]*\)/g, ' ')).join(' ');
+  function sameCompany(a, b) {
+    const ta = new Set(coWords(a));
+    const tb = new Set(coWords(b));
+    if (!ta.size || !tb.size) return false;
+    if (coCore(a) && coCore(a) === coCore(b)) return true;
+    const sub = (x, y) => [...x].every((w) => y.has(w));
+    return sub(ta, tb) || sub(tb, ta);
+  }
+  function leadLabel(lead) {
+    const t = triageOf(lead);
+    return [t.company, t.role_title].filter(Boolean).join(' ' + DASH + ' ') || String((lead && lead.lead_id) || '');
+  }
+  // The lead fleet_merge flagged this one as possibly repeating: {lead_id, label, applied} (label from the loaded lead
+  // when it is still on the page, else the note stored at triage time), or null.
+  function possibleDuplicate(lead, leads) {
+    const id = triageOf(lead).possible_duplicate_of;
+    if (!id || !LEAD_ID_RE.test(String(id)) || id === (lead && lead.lead_id)) return null;
+    const other = (leads || []).find((l) => l.lead_id === id);
+    return { lead_id: id, label: other ? leadLabel(other) : (triageOf(lead).possible_duplicate_note || id),
+      applied: !!other && sectionOf(other) === 'applied' };
+  }
+  function duplicateBadge(lead, leads) {
+    const d = possibleDuplicate(lead, leads);
+    return d ? 'Possible duplicate of ' + d.label + (d.applied ? ' (applied)' : '') : null;
+  }
+  // The skip sheet's "Duplicate" picker: other loaded leads at the same company, flagged target and applied first.
+  function sameCompanyLeads(leads, lead) {
+    const co = triageOf(lead).company;
+    const flagged = triageOf(lead).possible_duplicate_of;
+    const out = (leads || []).filter((l) => l && l.lead_id !== (lead && lead.lead_id)
+      && !(decisionOf(l).pending && decisionOf(l).pending.action === 'skip') && sameCompany(co, triageOf(l).company))
+      .map((l) => ({ lead_id: l.lead_id, label: leadLabel(l), applied: sectionOf(l) === 'applied', flagged: l.lead_id === flagged }));
+    return out.sort((a, b) => (b.flagged - a.flagged) || (b.applied - a.applied) || a.label.localeCompare(b.label));
+  }
+
+  // opts: settingsDirty (band moves disabled), focus (a focus view is on: band moves hidden), leads (all loaded leads,
+  // so a possible duplicate can offer "Skip as duplicate").
   // opts.dispatchEnabled === false (job_apply module off): no Applied / Need help, which need the claude CLI.
   // opts.demo (python -m copilot demo): they are shown anyway, and the server simulates them (board/demo.py).
   function actionsFor(lead, placed, opts) {
     const dirty = !!(opts && opts.settingsDirty);
+    const focus = !!(opts && opts.focus);
     const dispatch = !(opts && opts.dispatchEnabled === false) || !!(opts && opts.demo);
     const s = sectionOf(lead);
     if (!s || s === 'applied' || decisionOf(lead).pending || isActive(jobOf(lead))) return [];
-    if (s === 'airtable') return [{ action: 'skip', label: 'Skip' }];
-    if (s === 'closed') return [{ action: 'skip', label: 'Confirm closed', reason: 'closed_stale' },
-      { action: 'still_open', label: 'Still open' }];
+    const dup = possibleDuplicate(lead, opts && opts.leads);
+    const dupAct = dup ? [{ action: 'skip', label: 'Skip as duplicate', reason: DUPLICATE, duplicate_of: dup.lead_id,
+      note: 'possible duplicate flagged at intake' }] : [];
+    if (s === 'airtable') return [...dupAct, { action: 'skip', label: 'Skip' }];
+    if (s === 'closed') return [{ action: 'skip', label: 'Confirm closed', reason: 'closed_stale', note: 'confirmed closed on the board' },
+      { action: 'still_open', label: 'Still open' }, ...dupAct];
     // Normally the terminal run's completion line moves the card on its own; this is the fallback
     // (the server dispatches it with --from-terminal so the existing Airtable record is reused).
     const appliedLabel = isTerminalInProgress(lead) ? 'Applied (done in terminal)' : 'Applied';
     const out = dispatch ? [{ action: 'applied', label: appliedLabel }, { action: 'help', label: 'Need help' }] : [];
-    if (s === 'board' && placed) {
+    if (s === 'board' && placed && !focus) {   // a focus is view-only: no band moves while it is on
       if (S.stepBand(placed.band, +1)) out.push({ action: 'move_up', label: UP + ' Move up' });
       if (S.stepBand(placed.band, -1)) out.push({ action: 'move_down', label: DOWN + ' Move down' });
       if (placed.overridden) out.push({ action: 'reset_band', label: 'Reset' });
     }
-    out.push({ action: 'skip', label: 'Skip' });
+    out.push(...dupAct, { action: 'skip', label: 'Skip' });
     return dirty ? out.map((a) => (BAND_ACTIONS.includes(a.action) ? { ...a, disabled: true, hint: MOVE_BLOCKED_HINT } : a)) : out;
   }
 
@@ -191,8 +254,27 @@
     return counts;
   }
 
-  function groupLeads(leads, filter, query, ranked, bands) {
+  function normalizeFocus(focus) {
+    const key = focus && FOCUS_KEYS.includes(focus.key) ? focus.key : '';
+    return { key, top10: !!(focus && focus.top10 === true) };
+  }
+  function focusLabel(key) { const f = FOCUS_OPTIONS.find((x) => x.key === key); return f ? f.label : String(key); }
+  function factorOf(item, key) {
+    const fs = item && item.score && Array.isArray(item.score.factors) ? item.score.factors : [];
+    return fs.find((f) => f.key === key) || null;
+  }
+  // By that factor's score (desc); ties by composite (desc), then the default board order.
+  function focusSort(items, key) {
+    const val = (it) => { const f = factorOf(it, key); return f ? Number(f.score) || 0 : -1; };
+    return (items || []).slice().sort((a, b) => (val(b) - val(a)) || (b.score.composite - a.score.composite)
+      || ((a.position || a.rank || 0) - (b.position || b.rank || 0)));
+  }
+
+  // focus = {key, top10}. key '' is the default banded board; a factor key flattens the board into one list sorted by
+  // that factor. top10 keeps the first 10 of whichever order is showing. Pure view: nothing here is ever saved.
+  function groupLeads(leads, filter, query, ranked, bands, focus) {
     const keys = filter ? [filter] : DEFAULT_SECTIONS;
+    const f = normalizeFocus(focus);
     return keys.map((key) => {
       const members = (leads || []).filter((l) => sectionOf(l) === key && matchesQuery(l, query));
       if (key !== 'board') {
@@ -200,12 +282,27 @@
         return { key, label: GROUP_LABELS[key] || sectionLabel(key), leads: members };
       }
       const ids = new Set(members.map((l) => l.lead_id));
-      const placedBands = S.placeBands((ranked || []).filter((r) => ids.has(r.lead.lead_id)), bands || S.DEFAULT_BANDS, overrideOf);
+      let placedBands = S.placeBands((ranked || []).filter((r) => ids.has(r.lead.lead_id)), bands || S.DEFAULT_BANDS, overrideOf);
       let pos = 0;
       placedBands.forEach((b) => b.items.forEach((it) => { pos += 1; it.position = pos; }));
-      return { key, label: sectionLabel(key), leads: placedBands.flatMap((b) => b.items.map((it) => it.lead)), bands: placedBands };
+      const total = pos;
+      if (f.key) {
+        let items = focusSort(placedBands.flatMap((b) => b.items), f.key);
+        items.forEach((it, i) => { it.focusPosition = i + 1; });
+        if (f.top10) items = items.slice(0, TOP_N);
+        return { key, label: sectionLabel(key) + ' ' + DASH + ' by ' + focusLabel(f.key).toLowerCase(), total,
+          leads: items.map((it) => it.lead), items, focus: { key: f.key, label: focusLabel(f.key) } };
+      }
+      if (f.top10) placedBands = placedBands.map((b) => ({ ...b, items: b.items.filter((it) => it.position <= TOP_N) }));
+      return { key, label: sectionLabel(key), total, leads: placedBands.flatMap((b) => b.items.map((it) => it.lead)), bands: placedBands };
     });
   }
+
+  // localStorage holds only this string; the page wraps the storage calls themselves in try/catch.
+  function parseFocusPref(raw) {
+    try { return normalizeFocus(JSON.parse(String(raw))); } catch (_) { return normalizeFocus(null); }
+  }
+  function focusPrefString(focus) { return JSON.stringify(normalizeFocus(focus)); }
 
   function bandHeaders(group, collapsed) {
     return (group.bands || []).map((b) => ({ key: b.key, label: b.label, count: b.items.length,
@@ -218,11 +315,12 @@
   }
 
   const SEP = ' \u00b7 ';
-  function cardModel(lead, ranked) {   // ranked = a placeBands item (+ position), or null
+  // ranked = a placeBands item (+ position), or null; focusKey = the active focus factor ('' / undefined = none)
+  function cardModel(lead, ranked, focusKey) {
     const t = triageOf(lead);
     if (!ranked) {
       const failed = t.triage_status === 'failed';
-      return { scoreText: null, rank: null, gated: false, band: null, colorBand: null, movedByYou: false,
+      return { scoreText: null, rank: null, gated: false, band: null, colorBand: null, movedByYou: false, focus: null,
         note: failed ? 'Triage failed: ' + (t.triage_error || 'unknown') : 'Needs re-triage',
         summary: '', yourNote: lead.source_note || '', meta: [t.location].filter(Boolean).join(SEP), pay: null, fit: t.fit_rationale || '',
         gap: '', whyRank: '', breakdown: [] };
@@ -231,7 +329,9 @@
     const locs = Array.isArray(t.locations) && t.locations[0] ? t.locations.map((l) => l.label).join(' / ') : (t.location || '');
     const mod = t.modality && t.modality !== 'unknown' ? t.modality : null;
     const note = S.overrideNote(ranked);
+    const ff = focusKey ? factorOf(ranked, focusKey) : null;
     return {
+      focus: ff ? { label: focusLabel(focusKey), score: Math.round(ff.score), evidence: ff.evidence || '' } : null,
       scoreText: String(s.composite), rank: ranked.position || ranked.rank, gated: s.gated, note: null,
       band: ranked.band || s.band, colorBand: s.band, movedByYou: !!ranked.marked,
       summary: t.job_summary || '', yourNote: lead.source_note || '',
@@ -412,7 +512,10 @@
 
   const api = {
     MODULES, DEMO_NOTE, modulesPanel,
-    SECTIONS, DEFAULT_SECTIONS, SKIP_REASONS, FAST_POLL_MS, SLOW_POLL_MS, MAX_UNDO_BARS,
+    SECTIONS, DEFAULT_SECTIONS, SKIP_REASONS, DUPLICATE, FOCUS_OPTIONS, FOCUS_STORAGE_KEY, TOP_N,
+    FAST_POLL_MS, SLOW_POLL_MS, MAX_UNDO_BARS,
+    sameCompany, possibleDuplicate, duplicateBadge, sameCompanyLeads, normalizeFocus, focusSort, parseFocusPref,
+    focusPrefString,
     sectionOf, overrideOf, sectionLabel, warmCurrentContact, badgesFor, networkLine, safeHref, postingLink,
     engageLink, terminalCommand, actionsFor, MOVE_BLOCKED_HINT, bandHeaders, matchesQuery, countSections, groupLeads,
     cardModel, scoreSig, shownFor,

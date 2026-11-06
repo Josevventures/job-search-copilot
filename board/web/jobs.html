@@ -18,6 +18,17 @@
   .rank-btn:hover { background: var(--surface-3); color: var(--text); }
   .rank-btn.dirty { color: var(--warn); box-shadow: inset 0 0 0 1px var(--warn); }
 
+  /* Focus view (2026-10-29): view-only re-sort of the ranked board by one factor */
+  .focus-row { display: flex; align-items: center; gap: 8px; padding-top: 12px; flex-wrap: wrap; }
+  .focus-row label { font-size: var(--fs-small); color: var(--text-2); }
+  .focus-row select { min-height: 40px; padding: 0 12px; border: 0; border-radius: var(--radius-sm); background: var(--surface-2);
+    color: var(--text); font: inherit; font-size: var(--fs-small); }
+  .focus-row .chip { min-height: 40px; }
+  .focusline { font-size: var(--fs-small); color: var(--text); padding-left: 10px; box-shadow: inset 2px 0 0 var(--accent); overflow-wrap: anywhere; }
+  .focusline b { font-weight: 600; color: var(--accent); }
+  .lead .focusline { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+  .dupes .btn { justify-content: flex-start; text-align: left; overflow-wrap: anywhere; }
+
   .toolbar { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
   .toolbar .chips { margin: 0 -16px; padding: 0 16px 2px; }
   .toolbar .chip { flex: 0 0 auto; }
@@ -56,7 +67,8 @@
   .summary { font-size: 15px; color: var(--text); overflow-wrap: anywhere; }
   .lead .summary, .lead .whyrank { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
   .lead .network { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
-  .badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+  .badges .pill { white-space: normal; overflow-wrap: anywhere; }   /* a long badge (Possible duplicate of ...) wraps */
   .network { font-size: var(--fs-small); color: var(--text-2); padding-left: 10px; box-shadow: inset 2px 0 0 var(--text-3); overflow-wrap: anywhere; }
   .network.warm { color: var(--text); box-shadow: inset 2px 0 0 var(--good); }
   .whyrank { font-size: var(--fs-small); color: var(--text-2); overflow-wrap: anywhere; }
@@ -152,6 +164,11 @@
     <div class="chips hscroll" id="chips" role="toolbar" aria-label="Filter leads"></div>
     <input class="search" id="search" type="search" placeholder="Search company or role" autocomplete="off" aria-label="Search company or role">
   </div>
+  <div class="focus-row">
+    <label for="focus">Focus</label>
+    <select id="focus" aria-label="Focus the ranked board on one factor"></select>
+    <button class="chip" id="top10" type="button" aria-pressed="false">Top 10 only</button>
+  </div>
   <div id="sections" aria-live="polite"></div>
 </main>
 
@@ -171,6 +188,10 @@
       <textarea id="skip-note" maxlength="500" placeholder="What made this a no?"></textarea>
     </div>
     <div class="reasons" id="skip-reasons"></div>
+    <div class="stack dupes" id="skip-dupes" hidden>
+      <div class="small muted" id="skip-dupes-title">Duplicate of which lead?</div>
+      <div class="stack" id="skip-dupes-list"></div>
+    </div>
     <button class="btn" id="skip-cancel" type="button">Cancel</button>
   </div>
 </div>
@@ -242,8 +263,13 @@
     detailId: null, detailSig: '',   // lead shown in the details sheet, and what it was last built from
     config: JSON.parse(JSON.stringify(R.DEFAULT_CONFIG)), draft: null, usingDefaults: true, configLoaded: false,
     ranked: [], placed: new Map(), rankPending: false, collapsed: new Set(['low']),
-    leadsDir: null, dispatchEnabled: true, demo: false };
+    leadsDir: null, dispatchEnabled: true, demo: false,
+    focus: { key: '', top10: false } };   // Focus view: per browser, view-only (never sent to the server)
   state.draft = L.draftFromConfig(state.config);
+  try { state.focus = L.parseFocusPref(window.localStorage.getItem(L.FOCUS_STORAGE_KEY)); } catch (_) { /* private window */ }
+  function saveFocus() {
+    try { window.localStorage.setItem(L.FOCUS_STORAGE_KEY, L.focusPrefString(state.focus)); } catch (_) { /* not saved: fine */ }
+  }
   const $ = (id) => document.getElementById(id);
   let toastTimer = null;
   // Monotonic clock: elapsed time never depends on the phone's absolute clock.
@@ -379,20 +405,22 @@
   function leadSig(lead, r) {
     const { undo_remaining_s, _receivedAt, ...rest } = lead;
     return JSON.stringify(rest) + (state.busy.has(lead.lead_id) ? '|busy' : '') + (undo_remaining_s == null ? '|n' : '|u')
-      + '|' + (r ? r.band + r.overridden + r.marked : '') + '|' + settingsDirty() + '|' + state.dispatchEnabled + state.demo;
+      + '|' + (r ? r.band + r.overridden + r.marked : '') + '|' + settingsDirty() + '|' + state.dispatchEnabled + state.demo + '|' + state.focus.key
+      + '|' + (L.duplicateBadge(lead, state.leads) || '');
   }
-  const actOpts = () => ({ settingsDirty: settingsDirty(), dispatchEnabled: state.dispatchEnabled, demo: state.demo });
+  const actOpts = () => ({ settingsDirty: settingsDirty(), dispatchEnabled: state.dispatchEnabled, demo: state.demo,
+    focus: !!state.focus.key, leads: state.leads });
   const placedOf = (it) => (it && it.score ? it : null);
   const shown = (lead) => L.shownFor(state.placed.get(lead.lead_id) || null, settingsDirty());
   // Rebuild only when the visible structure changed, so buttons are never replaced under a finger.
   function renderSections() {
-    const groups = L.groupLeads(state.leads, state.filter, state.query, state.ranked, liveConfig().bands);
+    const groups = L.groupLeads(state.leads, state.filter, state.query, state.ranked, liveConfig().bands, state.focus);
     const boardGroup = groups.find((g) => g.key === 'board');
     state.placed = new Map();
-    if (boardGroup) boardGroup.bands.forEach((b) => b.items.forEach((it) => state.placed.set(it.lead.lead_id, it)));
-    const bandsOf = (g) => g.bands || [{ key: '', items: g.leads.map((lead) => ({ lead })) }];
+    if (boardGroup) (boardGroup.items || boardGroup.bands.flatMap((b) => b.items)).forEach((it) => state.placed.set(it.lead.lead_id, it));
+    const bandsOf = (g) => g.bands || [{ key: '', items: g.items || g.leads.map((lead) => ({ lead })) }];
     // The score signature is part of the section signature so a re-score that keeps the order still reaches patchScore.
-    const sig = JSON.stringify([settingsDirty(), [...state.collapsed], ...groups.map((g) => [g.key, g.label, bandsOf(g).map((b) =>
+    const sig = JSON.stringify([settingsDirty(), state.focus, [...state.collapsed], ...groups.map((g) => [g.key, g.label, g.total, bandsOf(g).map((b) =>
       [b.key, b.items.map((it) => it.lead.lead_id + ':' + leadSig(it.lead, placedOf(it)) + ':' + L.scoreSig(placedOf(it)))])])]);
     if (sig !== state.sectionsSig) {
       state.sectionsSig = sig;
@@ -415,7 +443,7 @@
         let node;
         if (cached && cached.sig === s) {
           node = cached.node;
-          if (cached.scoreSig !== ss) patchScore(node, L.cardModel(l, r));
+          if (cached.scoreSig !== ss) patchScore(node, L.cardModel(l, r, state.focus.key));
         } else node = card(l, r);
         next.set(l.lead_id, { sig: s, scoreSig: ss, node: node });
         grid.appendChild(node);
@@ -424,7 +452,7 @@
     groups.forEach((g) => {
       const sec = el('section', 'section');
       const h = el('h2', 'section-title', g.label);
-      h.appendChild(el('span', 'of', String(g.leads.length)));
+      h.appendChild(el('span', 'of', g.total != null && g.total !== g.leads.length ? g.leads.length + ' of ' + g.total : String(g.leads.length)));
       sec.appendChild(h);
       if (g.bands) {
         const items = new Map(g.bands.map((b) => [b.key, b.items]));
@@ -468,6 +496,15 @@
     }
     const wr = node.querySelector('[data-role=whyrank]');
     if (wr) wr.textContent = m.whyRank ? 'Why this rank: ' + m.whyRank : '';
+    const fl = node.querySelector('[data-role=focus]');
+    if (fl) {
+      fl.replaceChildren();
+      fl.hidden = !m.focus;
+      if (m.focus) {
+        fl.appendChild(el('b', null, m.focus.label + ' ' + m.focus.score));
+        if (m.focus.evidence) fl.appendChild(document.createTextNode(' — ' + m.focus.evidence));
+      }
+    }
     const bd = node.querySelector('[data-role=breakdown]');
     if (bd) {
       bd.replaceChildren();
@@ -503,6 +540,8 @@
     const badges = el('div', 'badges');
     L.badgesFor(lead).forEach((b) => badges.appendChild(el('span', 'pill' + (b.charAt(0) === '↑' ? ' good' : ''), b)));
     if (m.movedByYou) badges.appendChild(el('span', 'pill accent', 'moved by you'));
+    const dup = L.duplicateBadge(lead, state.leads);
+    if (dup) badges.appendChild(el('span', 'pill warn', dup));
     return badges.childNodes.length ? badges : null;
   }
   function networkEl(lead) {
@@ -525,7 +564,7 @@
   // Everything else (fit, gap, your note, factor breakdown, links, band moves) is one tap away in the details sheet.
   function card(lead, ranked) {
     const d = lead.decision || {};
-    const m = L.cardModel(lead, ranked);
+    const m = L.cardModel(lead, ranked, state.focus.key);
     const c = el('article', 'card lead' + (d.pending ? ' pending' : ''));
     const head = el('button', 'lead-head');
     head.type = 'button';
@@ -534,6 +573,7 @@
     head.addEventListener('click', () => openDetail(lead.lead_id));
     c.appendChild(head);
     if (m.note) c.appendChild(el('div', 'note', m.note));
+    if (ranked) { const fl = el('div', 'focusline'); fl.dataset.role = 'focus'; c.appendChild(fl); }
     c.appendChild(metaLine(m));
     if (m.summary) c.appendChild(el('div', 'summary', m.summary));
     const badges = badgesEl(lead, m);
@@ -566,7 +606,7 @@
     state.detailSig = sig;
     const box = $('lead-content');
     box.replaceChildren();
-    const m = L.cardModel(lead, ranked);
+    const m = L.cardModel(lead, ranked, state.focus.key);
     const head = el('div', 'detail-head');
     head.append(scoreBadge(), titleBlock(lead, 'lead-title'));
     const x = el('button', 'icon-btn');
@@ -578,6 +618,7 @@
 
     const top = el('section');
     if (m.note) top.appendChild(el('div', 'note', m.note));
+    if (ranked) { const fl = el('div', 'focusline'); fl.dataset.role = 'focus'; top.appendChild(fl); }
     top.appendChild(metaLine(m));
     const badges = badgesEl(lead, m);
     if (badges) top.appendChild(badges);
@@ -680,7 +721,9 @@
   const sheetUi = { last: null, raf: 0, hideTimer: 0 };
   function onAction(lead, a) {
     const action = a.action;
-    if (action === 'skip' && a.reason) return send(lead, { action: 'skip', reason: a.reason, note: 'confirmed closed on the Jobs tab', shown: shown(lead) });
+    // One-tap skips carry their own reason (Confirm closed, Skip as duplicate); JSON drops an undefined duplicate_of.
+    if (action === 'skip' && a.reason) return send(lead, { action: 'skip', reason: a.reason, note: a.note || null,
+      duplicate_of: a.duplicate_of || undefined, shown: shown(lead) });
     if (action === 'skip') return openSheet('skip-sheet', lead);
     if (action === 'help') return openSheet('help-sheet', lead);
     send(lead, { action: action, shown: shown(lead) });   // move_up, move_down, reset_band, still_open, applied: the Undo bar covers mistakes
@@ -688,7 +731,10 @@
   function openSheet(id, lead) {
     if (lead) state.sheetLead = lead;
     const company = lead ? ((lead.triage || {}).company || 'this lead') : '';
-    if (id === 'skip-sheet') { $('skip-title').textContent = 'Skip ' + company + ' — why?'; $('skip-note').value = ''; }
+    if (id === 'skip-sheet') {
+      $('skip-title').textContent = 'Skip ' + company + ' — why?'; $('skip-note').value = '';
+      $('skip-dupes').hidden = true; $('skip-reasons').hidden = false;
+    }
     if (id === 'help-sheet') { $('help-title').textContent = 'Need help — ' + company; $('help-command').textContent = L.terminalCommand(lead, state.leadsDir); }
     if (id !== 'lead-sheet') state.detailId = null;
     const open = SHEETS.find((s) => !$(s).hidden);
@@ -721,11 +767,44 @@
         const lead = state.sheetLead;
         if (!lead) return;
         const note = $('skip-note').value.trim();
+        if (r.key === L.DUPLICATE) return showDupePicker(lead, note);
         send(lead, { action: 'skip', reason: r.key, note: note || null, shown: shown(lead) });
       });
       box.appendChild(b);
     });
   }
+  // "Duplicate / already applied": pick which same-company lead this one repeats (optional), then skip.
+  function showDupePicker(lead, note) {
+    const options = L.sameCompanyLeads(state.leads, lead);
+    const skip = (dupOf) => send(lead, { action: 'skip', reason: L.DUPLICATE, note: note || null,
+      duplicate_of: dupOf || undefined, shown: shown(lead) });
+    if (!options.length) return skip(null);
+    const list = $('skip-dupes-list');
+    list.replaceChildren();
+    options.forEach((o) => list.appendChild(button(o.label + (o.applied ? ' (applied)' : '') + (o.flagged ? ' — flagged' : ''),
+      o.flagged ? 'primary' : '', () => skip(o.lead_id))));
+    list.appendChild(button('Not linked to a lead', 'ghost', () => skip(null)));
+    $('skip-reasons').hidden = true;
+    $('skip-dupes').hidden = false;
+  }
+  // ---- Focus view: view-only, saved per browser; never posts anything ------------------
+  function renderFocusControls() {
+    const sel = $('focus');
+    if (!sel.options.length) {
+      L.FOCUS_OPTIONS.forEach((f) => { const o = document.createElement('option'); o.value = f.key; o.textContent = f.label; sel.appendChild(o); });
+    }
+    sel.value = state.focus.key;
+    $('top10').setAttribute('aria-pressed', String(state.focus.top10));
+  }
+  function setFocus(next) {
+    state.focus = L.normalizeFocus(next);
+    saveFocus();
+    renderFocusControls();
+    renderSections();
+  }
+  $('focus').addEventListener('change', (e) => setFocus({ ...state.focus, key: e.target.value }));
+  $('top10').addEventListener('click', () => setFocus({ ...state.focus, top10: !state.focus.top10 }));
+  renderFocusControls();
   // Plain http over a private network is not a secure context: navigator.clipboard is missing on a phone.
   function copyText(text) {
     if (navigator.clipboard && window.isSecureContext) {

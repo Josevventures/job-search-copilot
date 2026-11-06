@@ -46,7 +46,8 @@ BAND_ACTIONS = ("move_up", "move_down", "reset_band")
 BAND_KEYS = ("apply_now", "worth_a_look", "low")
 JOB_ACTIONS = ("applied", "prep", "terminal")  # each sets job_status: never while a job is running
 SKIP_REASONS = ("wrong_level", "wrong_function", "location", "pay", "company_industry", "closed_stale",
-                "not_interested")
+                "not_interested", "duplicate")
+DUPLICATE_REASON = "duplicate"  # optional duplicate_of: the lead this one repeats (2026-10-29 dedupe)
 NOTE_MAX = 500
 LEAD_ID_RE = re.compile(r"[0-9a-f]{12}")
 TRIAGE_VIEW_KEYS = ("company", "role_title", "location", "pay", "pay_type", "jd_url", "jd_read", "posting_status",
@@ -54,6 +55,7 @@ TRIAGE_VIEW_KEYS = ("company", "role_title", "location", "pay", "pay_type", "jd_
                     "triage_status", "triage_error", "triaged_at", "route", "job_summary", "scores", "main_gap", "level",
                     "locations", "modality", "relocation_assistance", "pay_bands", "pay_source", "bonus", "equity",
                     "posted_date", "posted_date_source", "reposted", "applicant_count", "inbound", "recruiter_signal",
+                    "possible_duplicate_of", "possible_duplicate_note",   # set by fleet_merge's duplicate matcher
                     # v1 leads only (Needs re-triage ordering and the old Why line); null on v2
                     "category", "relevance", "why", "bucket", "bucket_reason")
 # Everything scoring_bridge.lead_to_view + jobs_scoring.js read from triage, so a stored decision can be re-scored
@@ -67,7 +69,7 @@ SNAPSHOT_VERSION = 2
 DISPATCH_OFF = ("the job_apply module is off (config.yaml modules.job_apply.enabled): Applied, prep and terminal "
                 "jobs are disabled")
 DECISION_VIEW_KEYS = ("decision", "job_status", "prep_file", "airtable_record_id", "band_override", "still_open")
-PENDING_VIEW_KEYS = ("action", "reason", "note", "requested_at", "execute_after", "target_band")
+PENDING_VIEW_KEYS = ("action", "reason", "note", "requested_at", "execute_after", "target_band", "duplicate_of")
 PREP_TIMEOUT_S = 1200
 APPLIED_TIMEOUT_S = 1800
 TIMEOUT_SUFFIX = " — check Airtable / Prep before retrying"
@@ -228,6 +230,8 @@ def skip_record(lead: dict, pending: dict, now: datetime) -> dict:
            "bucket": snap.get("bucket"), "fit_score": t.get("fit_score"), "location": t.get("location"),
            "pay": t.get("pay"), "warm_contact": bool(snap.get("warm_contact")), "reason": pending.get("reason"),
            "note": pending.get("note"), "skipped_at": _iso(now)}
+    if pending.get("duplicate_of"):
+        rec["duplicate_of"] = pending["duplicate_of"]
     rec.update({"snapshot_version": snap.get("snapshot_version", 1), "schema_version": snap.get("schema_version", 1),
                 "scores": snap.get("scores"), "pay_bands": snap.get("pay_bands"),
                 "posted_date": snap.get("posted_date"), "config": snap.get("config"),
@@ -522,13 +526,18 @@ class JobsService:
 
     # ---- actions ----------------------------------------------------------------
     def record_action(self, lid: str, action: str, reason: str | None = None, note: str | None = None,
-                      shown: dict | None = None) -> dict:
+                      shown: dict | None = None, duplicate_of: str | None = None) -> dict:
         if action not in ACTIONS:
             raise JobsError(422, f"unknown action {action!r}; expected one of {', '.join(ACTIONS)}")
         if action in JOB_ACTIONS and not (self.dispatch_enabled or self.demo):
             raise JobsError(503, DISPATCH_OFF)
         if action == "skip" and reason not in SKIP_REASONS:
             raise JobsError(422, f"skip needs a reason chip: {', '.join(SKIP_REASONS)}")
+        if duplicate_of is not None:
+            if action != "skip" or reason != DUPLICATE_REASON:
+                raise JobsError(422, f"duplicate_of goes only with a skip for reason {DUPLICATE_REASON!r}")
+            if not LEAD_ID_RE.fullmatch(str(duplicate_of)) or duplicate_of == lid:
+                raise JobsError(422, "duplicate_of must be another lead's 12-hex id")
         if note is not None and len(note) > NOTE_MAX:
             raise JobsError(422, f"note longer than {NOTE_MAX} characters")
         err = check_shown(shown)
@@ -545,6 +554,9 @@ class JobsService:
                 raise JobsError(409, "a background job is still running for this lead")
             if dec.get("decision") == "applied":
                 raise JobsError(409, "already marked applied; use Retry if logging failed")
+            if duplicate_of is not None and not ((self.store.base / f"{duplicate_of}.json").is_file()
+                                                 or duplicate_of in self.store.skipped_ids()):
+                raise JobsError(422, f"duplicate_of: no lead {duplicate_of}")
             now = self.clock()
             at = _iso(now)
             if action == "still_open" and ((lead.get("triage") or {}).get("route") != "closed" or still_open_active(lead)):
@@ -568,8 +580,10 @@ class JobsService:
                        "execute_after": _iso(now + timedelta(seconds=self.undo_window_s)), "snapshot": snap}
             if action == "still_open":
                 pending["triaged_at_seen"] = (lead.get("triage") or {}).get("triaged_at")
-            history = list(dec.get("history") or []) + [
-                {"at": at, "action": action, "reason": reason, "note": note, "state": "pending", "snapshot": snap}]
+            row = {"at": at, "action": action, "reason": reason, "note": note, "state": "pending", "snapshot": snap}
+            if duplicate_of is not None:
+                pending["duplicate_of"] = row["duplicate_of"] = duplicate_of
+            history = list(dec.get("history") or []) + [row]
             return self.view(self.store.update(lid, "decision", {"pending": pending, "history": history}), now)
 
     def undo(self, lid: str) -> dict:
@@ -968,6 +982,7 @@ class ActionBody(BaseModel):
     reason: str | None = None
     note: str | None = None
     shown: dict | None = None   # {score, rank, band} the card showed when the user acted (ranking-engine §5)
+    duplicate_of: str | None = None   # skip reason "duplicate": the lead this one repeats (optional)
 
 
 def _http(fn, *args):
@@ -990,7 +1005,7 @@ def make_router(svc: JobsService) -> APIRouter:
 
     @router.post("/api/jobs/leads/{lead_id}/action")
     def jobs_action(lead_id: str, body: ActionBody):
-        return _http(svc.record_action, lead_id, body.action, body.reason, body.note, body.shown)
+        return _http(svc.record_action, lead_id, body.action, body.reason, body.note, body.shown, body.duplicate_of)
 
     @router.post("/api/jobs/leads/{lead_id}/undo")
     def jobs_undo(lead_id: str):

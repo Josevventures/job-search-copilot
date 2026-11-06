@@ -1566,3 +1566,66 @@ def test_prep_complete_with_blocked_tools_keeps_them_on_the_card(env):
     d = finish(env, "job-1", status="complete", result=f"Saved.\nPREP_FILE: {PREP}", blockedTools=["Glob", "Grep"])
     assert d["job_status"]["state"] == "done" and d["prep_file"] == PREP
     assert d["job_status"]["blocked_tools"] == ["Glob", "Grep"]
+
+
+# ---- 2026-10-29: skip reason "duplicate" (+ optional duplicate_of) -----------------------------------------
+
+def test_skip_as_duplicate_records_duplicate_of_in_pending_history_and_skip_log(env):
+    keep = make_lead(env.store, 1)
+    dup = make_lead(env.store, 2)
+    r = act(env, dup, "skip", reason="duplicate", duplicate_of=keep)
+    assert r.status_code == 200, r.text
+    view = r.json()
+    assert view["decision"]["pending"]["duplicate_of"] == keep
+    hist = env.store.read(dup)["decision"]["history"][-1]
+    assert (hist["reason"], hist["duplicate_of"], hist["state"]) == ("duplicate", keep, "pending")
+    env.clock.advance(90)
+    env.svc.sweep()
+    assert not (env.leads / f"{dup}.json").exists() and (env.leads / f"{keep}.json").exists()
+    rec = json.loads((env.leads / "_skips.jsonl").read_text(encoding="utf-8").splitlines()[-1])
+    assert (rec["lead_id"], rec["reason"], rec["duplicate_of"]) == (dup, "duplicate", keep)
+
+
+def test_skip_as_duplicate_without_a_target_is_allowed_and_logs_no_duplicate_of(env):
+    lid = make_lead(env.store)
+    assert act(env, lid, "skip", reason="duplicate").status_code == 200
+    env.clock.advance(90)
+    env.svc.sweep()
+    rec = json.loads((env.leads / "_skips.jsonl").read_text(encoding="utf-8").splitlines()[-1])
+    assert rec["reason"] == "duplicate" and "duplicate_of" not in rec
+
+
+def test_duplicate_of_may_point_at_a_skipped_lead(env):
+    gone = make_lead(env.store, 1)
+    act(env, gone, "skip", reason="pay")
+    env.clock.advance(90)
+    env.svc.sweep()
+    lid = make_lead(env.store, 2)
+    assert act(env, lid, "skip", reason="duplicate", duplicate_of=gone).status_code == 200
+
+
+@pytest.mark.parametrize("kw,needle", [
+    ({"reason": "pay", "duplicate_of": "aaaaaaaaaaaa"}, "only with a skip"),
+    ({"reason": "duplicate", "duplicate_of": "not-a-lead"}, "12-hex"),
+    ({"reason": "duplicate", "duplicate_of": "bbbbbbbbbbbb"}, "no lead bbbbbbbbbbbb"),
+])
+def test_duplicate_of_is_validated(env, kw, needle):
+    lid = make_lead(env.store)
+    r = act(env, lid, "skip", **kw)
+    assert r.status_code == 422 and needle in r.json()["detail"]
+    assert act(env, lid, "skip", reason="duplicate", duplicate_of=lid).status_code == 422   # never itself
+    assert env.store.read(lid)["decision"].get("pending") is None
+
+
+def test_duplicate_of_never_rides_on_another_action(env):
+    lid = make_lead(env.store)
+    r = act(env, lid, "still_open", duplicate_of="aaaaaaaaaaaa")
+    assert r.status_code == 422
+
+
+def test_possible_duplicate_fields_reach_the_view(env):
+    keep = make_lead(env.store, 1)
+    lid = make_lead(env.store, 2, possible_duplicate_of=keep, possible_duplicate_note="Acme — Associate")
+    v = next(l for l in env.client.get("/api/jobs/leads").json()["leads"] if l["lead_id"] == lid)
+    assert v["triage"]["possible_duplicate_of"] == keep
+    assert v["triage"]["possible_duplicate_note"] == "Acme — Associate"

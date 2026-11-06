@@ -190,6 +190,17 @@ LEADS = [
         scores={"role_fit": {"score": 75, "evidence": "Operator-facing dashboards shipped before"},
                 "domain": {"score": 66, "evidence": "Robotics software, adjacent"}},
         main_gap="No robotics background", fit_score="Medium")),
+    # The same role reached again through a hiring post: the matcher flags it as a possible duplicate (the title
+    # differs only by a noise word), so the board shows the badge and a one-click "Skip as duplicate".
+    ("https://www.linkedin.com/posts/example-hiring-manager_grid-analytics-pm-share-0000000000000000001", dict(
+        company="Saltmarsh Energy", role_title="Senior Product Manager, Grid Analytics (Hybrid)", level="senior",
+        job_summary="Own the forecasting product used by utility grid operators",
+        locations=[place("Boston, MA", "boston")], modality="hybrid",
+        pay_bands=[], pay_source="none", posted_date="2026-10-14",
+        scores={"role_fit": {"score": 82, "evidence": "Five years of B2B product work, two on energy data"},
+                "domain": {"score": 93, "evidence": "Grid software is the center of the stated direction"}},
+        main_gap="Post text only: no pay or applicant count on it",
+        fit_score="High")),
 ]
 FAILED = ("https://careers.wrensystems.example/jobs/12345", "fetch_failed")
 V1 = ("https://jobs.lever.co/quillmate/00000000-0000-4000-8000-000000000018",

@@ -246,6 +246,59 @@ so the skill now says Read, never Grep; and the job list said `permission_denied
 release. Some label evasions (closed shadow DOM, `aria-describedby`, text drawn over an image) can still earn a
 click; the write lock limits the worst case to a wrong click or a GET the page defines.
 
+
+## 2026-10-29 — Duplicate leads: one card per role
+
+**Problem.** A lead's id is a hash of one canonical URL, and intake deduped on that URL only. So the same role
+posted by two people on LinkedIn, or on LinkedIn and on a careers site, became two leads. I noticed the same roles
+twice on the board; an audit found three live duplicates, one of them a role I had already applied to. Each one
+cost a triage run, split my attention and risked a second application. There was no skip reason for it either,
+so the skip log recorded those skips as something else.
+
+**Tried.** A matcher that is conservative on purpose. Fuzzy title similarity was ruled out up front: one bank's
+"Product Associate" and "Product Manager", or one company's three engineer roles for different segments, are
+different jobs, and a wrong merge silently hides a role, which is worse than a duplicate card.
+
+**Decision.**
+- A **confident** match is the same specific posting URL (LinkedIn job URLs reduce to their numeric id; a generic
+  `/careers` page never counts, because one page hosts many roles), or the same company and the same title word
+  for word with no location conflict. A **fuzzy** match is a related company name, or a title whose only extra
+  words are noise (location, team, the company's own name). Seniority and function words never match.
+- **At intake**, a URL that names a posting an existing lead holds goes into that lead's `intake.sources[]`, with
+  no new file. Company and title are unknown until triage, so that check runs **after triage**: a confident match
+  on a fresh lead (no decision, history, pending action or job) is folded into the existing lead and logged as a
+  `duplicate` skip, so its URLs are never re-created. A fuzzy match, or a confident one on a lead with history, is
+  only flagged (`possible_duplicate_of`), and the card offers one-click **Skip as duplicate**.
+- A new skip reason, `duplicate`, with an optional `duplicate_of` that is validated: only with that reason, never
+  the lead itself, and it must be another lead file or a skipped lead.
+- A report-only scan, `fleet_merge.py --dedupe-report`, for audits.
+
+**Measured.** The three known duplicates were skipped through the board's own action with the right
+`duplicate_of`. The report-only scan flagged two more pairs for me to judge: one probably a single application
+recorded twice, the other a shared URL whose job ids differed, so probably two roles. Neither was folded
+automatically, which is the point of the fuzzy tier. Tests at the time: 13 for the matcher, intake and merge, 9 in
+the backend, 7 in JS.
+
+## 2026-10-29 — The Focus view is view-only
+
+**Problem.** I wanted to look at the board through one factor. Role fit was low across the board (62 open leads,
+16 at 60 or more, 1 at 70 or more), and I wanted to see which leads led on fit alone, or on odds alone, without
+re-weighting anything.
+
+**Rejected.** Doing it through the weights (a temporary "100% role fit" preset). The saved weights and my band
+moves are the record I calibrate the ranking against; a view that writes them, even briefly, would leave
+decisions logged under a config I never chose.
+
+**Decision.** A Focus picker (Default ranking, Role fit, Domain, Odds, Pay, Location, Freshness) re-sorts the ranked
+board by that factor's score, breaks ties by the composite, flattens the bands into one list and shows the
+factor's score and evidence on each card. **Top 10 only** trims whichever order is showing. It sends nothing: no
+API call, no config or band write, and band moves are hidden while a focus is on, so a move can never be made
+against a list that is not the ranking. The choice is kept per browser in `localStorage`, wrapped so a private
+window just starts at the default.
+
+**Measured.** A headless check of the live page: the sort order held, Top 10 showed "10 of 59", the choice
+survived a reload, band moves disappeared under a focus and came back without one, and no POST was sent.
+
 ---
 
 ## Judgment calls made during extraction (2026-10-15)
@@ -265,3 +318,16 @@ Not decisions of the private system; choices made to publish it.
   dashboard unrelated to jobs.
 - **Fixtures.** The LinkedIn post fixtures are invented with the structure of the real guest page. The three ATS
   page fixtures are real captures with every identifying string replaced; see `prep_extract/tests/fixtures/`.
+
+## Judgment calls made in the v0.2.0 port (2026-11-06)
+
+- **The page redesign came along.** The private board moved onto a shared dashboard stylesheet on 2026-10-21. Here
+  it is one file, `board/web/board.css`, with only what the board uses (no training-page tokens, no light theme,
+  which nothing here switches on). The private settings panel and theme switch were not ported.
+- **A sample duplicate.** The demo has one more invented lead: the same role reached through a hiring post, which
+  the matcher flags, so the badge and **Skip as duplicate** show in `python -m copilot demo`.
+- **Two fixes found while porting.** A long badge ("Possible duplicate of ...") overflowed the card because pills
+  do not wrap; it now wraps. One merge test relied on two lead ids sorting in a particular order, which the
+  invented URLs did not; it now merges the leads in two batches so the order is fixed by the test.
+- **The tzdata check.** On Windows, a Python without the requirements failed the Slack tests with four opaque
+  collection errors; the skill's `conftest.py` now raises one usage error that names the interpreter.

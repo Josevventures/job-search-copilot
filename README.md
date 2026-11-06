@@ -85,7 +85,8 @@ through Node and never re-implements a formula, and one golden fixture is checke
 shows **Why this rank**: the two factors that lifted it most and the one that held it back.
 
 **One lead per job, one writer per field group.** A lead is a JSON file keyed by a hash of its canonical URL, so the
-same job reached through a post, a roundup and a direct link is one lead. Intake writes the `intake` group, the
+same job reached through a post, a roundup and a direct link is one lead. A second URL for the same role is caught
+by a duplicate matcher (below). Intake writes the `intake` group, the
 merge script writes `triage`, the board writes `decision`, and the store raises on any write outside the caller's
 group. AI runs never edit a lead. They report back with one marker line.
 
@@ -94,6 +95,11 @@ manifest. The run asks before spending on more than 20 leads and stops if more t
 each checkpoint against a schema and either merges it whole or marks the lead failed. The batch pattern is
 published separately as [resumable-fanout](https://github.com/Josevventures/resumable-fanout).
 
+**Look through one factor without touching the ranking.** The Focus picker re-sorts the board by a single factor
+(role fit, domain, odds, pay, location or freshness), with ties broken by the composite, and shows that factor's
+score and evidence on each card. It is view-only: it sends nothing, hides band moves while it is on, and never
+changes the saved weights.
+
 **Undo before anything is final.** Every action stays pending for 90 seconds, and a sweeper executes it after the
 window. A skip writes a log line with a snapshot of what the card showed, then deletes the lead. A skipped job is
 never re-created.
@@ -101,6 +107,31 @@ never re-created.
 **The form is read, never filled.** The extractor clicks only navigation controls on the posting's own host and
 blocks every write request after the first page renders. The answers are drafted by a model with no browser, no
 web and no shell, locked down per job by a settings file and a hook that is self-tested before every dispatch.
+
+## Duplicate leads
+
+Hashing the canonical URL made one lead per URL, not one lead per job. The same role posted by two people on
+LinkedIn, or on LinkedIn and on a careers site, came in as two leads. I saw roles twice on my board, and an audit
+found three live duplicates, one of them a role I had already applied to. Each cost a triage run and risked a
+second application.
+
+The tempting fix was fuzzy title matching, and I ruled it out. One bank's "Product Associate" and "Product
+Manager" are different jobs, and so are one company's three engineer roles for three segments. A wrong merge hides
+a role without telling anyone, which is worse than a duplicate card. So the matcher (`lib/dedupe.py`, standard
+library only) is strict about what it folds and only flags the rest:
+
+- **Folded:** the same specific posting URL (LinkedIn job URLs compare by job id; a generic `/careers` page never
+  counts), or the same company with the same title word for word and no location conflict. Intake catches the URL
+  case; company and title exist only after triage, so the merge catches the rest, and only for a lead nothing has
+  happened to yet. The folded lead's links join the existing one and a `duplicate` line goes to the skip log, so
+  those URLs are never triaged again.
+- **Flagged:** a related company name, or a title that differs only by noise words (location, team, the company's
+  own name). Both cards stay, and the newer one shows "Possible duplicate of ..." with a one-click **Skip as
+  duplicate**. Seniority and function words never match.
+
+`duplicate` is now a skip reason of its own, with a validated `duplicate_of`, so the skip log says what happened.
+`fleet_merge.py --dedupe-report` lists every pair the matcher would flag and changes nothing; on my own board it
+found two more pairs that were mine to judge, not the matcher's.
 
 ## Limits and non-goals
 
@@ -127,7 +158,7 @@ pip install -r requirements.txt
 python -m copilot demo
 ```
 
-`demo` copies 19 invented leads into a scratch folder and opens the board at `http://127.0.0.1:8420/jobs`. The demo
+`demo` copies 20 invented leads into a scratch folder and opens the board at `http://127.0.0.1:8420/jobs`. The demo
 shows every step: Applied writes a local application record and Need help opens a sample prep pack, both simulated
 without Claude Code, and the **Modules** panel at the top shows which modules are on and links to each one's setup.
 
@@ -144,18 +175,23 @@ Per-module setup (Slack app scopes, Claude Code skills, Playwright, the Airtable
 
 ## Sample output
 
-The demo board (invented leads), desktop:
+The demo board (invented leads), desktop. The third card is a flagged duplicate of the first.
 
 ![The Jobs board with ranked cards](docs/img/board.png)
 
-One card with **Why this rank** open: each factor's score, weight, points and evidence.
+The same board with Focus on role fit and Top 10 only: one flat list, each card showing its role-fit score and
+evidence. The saved ranking is untouched.
 
-![A card with its factor breakdown](docs/img/why-this-rank.png)
+![The board focused on role fit](docs/img/focus-view.png)
 
-Ranking settings on a phone: presets, six weights, the pay floor and the band thresholds. The board re-ranks as a
-slider moves.
+One lead's details sheet: fit, main gap, **Why this rank** and each factor's score, weight, points and evidence.
 
-![Ranking settings on a phone](docs/img/ranking-settings-phone.png)
+![A lead's details with its factor breakdown](docs/img/why-this-rank.png)
+
+On a phone: ranking settings (presets, six weights, the pay floor and the band thresholds; the board re-ranks as a
+slider moves), and a skip waiting in its 90-second undo window.
+
+![Ranking settings on a phone](docs/img/ranking-settings-phone.png) ![A skip with its Undo snackbar on a phone](docs/img/undo-snackbar-phone.png)
 
 The demo's sample prep pack for one card (in demo mode it is generated from the lead's invented data):
 
@@ -185,6 +221,8 @@ Dates are from the private repo's change log and commits.
 | 2026-10-13 | Ranking engine: tiers replaced by a pay gate and a 1-100 score of six factors, one scorer, the settings drawer |
 | 2026-10-14 | Calibration on 40 real leads; Slack intake live as a daily local task |
 | 2026-10-15 | Acceptance on Greenhouse, Lever and Ashby with zero submissions; extracted to this repo |
+| 2026-10-21 | The board redesigned onto one stylesheet: compact cards, a details sheet, undo snackbars |
+| 2026-10-29 | Duplicate leads folded or flagged; the view-only Focus view |
 
 ## What I learned
 
@@ -224,7 +262,7 @@ pip install -r requirements-dev.txt
 python scripts/run_tests.py
 ```
 
-Four pytest suites plus the Node tests for the scorer and page logic: 1,030 tests, 56 of which need a browser. The
+Four pytest suites plus the Node tests for the scorer and page logic: 1,080 tests, 56 of which need a browser. The
 fixtures are invented or scrubbed (see `prep_extract/tests/fixtures/README.md`). CI installs only the core
 requirements, so the extractor's browser tests are skipped there with a reason. They run locally once Playwright's
 Chromium is installed.

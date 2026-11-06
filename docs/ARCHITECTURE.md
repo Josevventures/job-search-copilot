@@ -70,6 +70,11 @@ or an `.xlsx` (hyperlinks are read too). For each URL:
   before its link as a hint. A post with one job link becomes a lead on the posting URL. A post with no link becomes
   a lead on the post itself, keeping the post text. A login-walled post still becomes a lead.
 - A job you skipped on the board is never re-created (`previously_skipped`), so you never pay to re-triage it.
+- **Same posting, second link:** a URL that names a posting an existing lead already holds (its canonical URL, its
+  `jd_url`, its job links or a non-post source) is appended to that lead's `intake.sources[]` instead of becoming a
+  second lead (`deduped`). LinkedIn job URLs compare by their numeric job id; generic listing pages (`/careers`,
+  `/jobs`, `/join-us` and the like) never count, because one page hosts many roles. A URL whose posting you skipped
+  stays skipped. Intake does not know company or title yet, so that check waits for the merge.
 - **Per-URL error isolation:** each URL, and each child of a roundup, runs inside its own `try`. A failure is
   recorded against that URL; the rest continue. The exit code is 4 only when every URL failed, so an unattended
   caller can tell "nothing worked" from "partial".
@@ -113,6 +118,18 @@ whole contract.
 `fleet_merge.py` validates every checkpoint, writes the `triage` group and assigns a route with
 `lib/routing.py` (first match wins): `airtable` (same role already applied), `screened`, `closed` (posting closed;
 you confirm it on the board), `board`. The route only decides which section a lead appears in. It does not rank.
+
+Once a lead has a company and a title, the merge compares it with every other lead file and the skip log
+(`lib/dedupe.py`, stdlib only):
+
+| Match | Rule | What happens |
+|---|---|---|
+| confident | the same specific posting URL, or the same company and the same title word for word with no location conflict | a fresh lead (no decision, history, pending action or job) is folded: its sources join the existing lead, a `duplicate` line with `auto: true` and `duplicate_of` goes to the skip log, and its file is removed |
+| fuzzy | same title at a related company name, or a title that differs only by noise words (location, team, the company's own name) | both are kept; the newer one gets `triage.possible_duplicate_of` and `possible_duplicate_note` |
+| none | anything else, including any seniority or function word that differs | separate roles |
+
+A confident match on a lead that already has history is flagged, never folded. `fleet_merge.py --dedupe-report`
+lists every flagged pair and writes nothing.
 
 ### 5. Rank: the board (core)
 
@@ -158,11 +175,17 @@ a restart cannot lose it.
 | Action | Effect |
 |---|---|
 | Skip (reason chip + note) | one line in `data/leads/_skips.jsonl` (with a snapshot of what the card showed), then the lead file is deleted |
+| Skip as duplicate | reason `duplicate` with an optional `duplicate_of`, which must be another lead file or a skipped lead; one tap on a flagged card, or the Duplicate chip, which lists same-company leads |
 | Move up / Move down / Reset | a band override, one band per tap; the real score stays visible |
 | Still open | for a **Closed?** card; holds only for the triage you answered |
 | Applied | dispatches `/job-apply --already-applied` (job_apply module) |
 | Need help → Draft prep pack | form extractor, then the locked-down drafter (job_apply module) |
 | Need help → Copy terminal command | copies `/job-apply <url> --lead data/leads/<id>.json` for an interactive run |
+
+**Focus** re-sorts the ranked board by one factor's score (ties go to the composite), flattens the bands and shows
+that factor's score and evidence on each card; **Top 10 only** trims whichever order is showing. It is a view: no
+request is sent, band moves are hidden while it is on, and the choice is kept per browser in `localStorage`. The
+saved weights change only through Ranking settings.
 
 Every decision row carries a snapshot (shown score, rank, computed and chosen band, config version and weights)
 so the decisions can later be used to check or tune the weights.
@@ -258,9 +281,9 @@ a row.
 | Path | What |
 |---|---|
 | `copilot/` | config loader and `python -m copilot` (demo, serve, add, modules) |
-| `board/` | FastAPI server, the board backend (`jobs.py`), scoring config, dispatch, prep lockdown, `web/` page and scorer |
-| `skills/job-apply-fleet/` | intake, triage waves, merge, Slack wrapper, `lib/` (lead store, routing, checkpoint schema, Slack, ATS fetch), the skill and subagent prompts |
+| `board/` | FastAPI server, the board backend (`jobs.py`), scoring config, dispatch, prep lockdown, `web/` page, stylesheet (`board.css`) and scorer |
+| `skills/job-apply-fleet/` | intake, triage waves, merge, Slack wrapper, `lib/` (lead store, routing, duplicate matcher, checkpoint schema, Slack, ATS fetch), the skill and subagent prompts |
 | `skills/job-apply/SKILL.md` | the application skill (prompt-only) |
 | `prep_extract/` | the form extractor |
-| `samples/` | 19 invented leads for the demo board and the script that generates them |
+| `samples/` | 20 invented leads for the demo board and the script that generates them |
 | `data/` | your data (gitignored): `leads/`, `prep/`, `reports/`, `.state/` |
